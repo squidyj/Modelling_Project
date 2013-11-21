@@ -55,38 +55,21 @@ namespace Subdivision_Project
 		public Model(int p)
 		{
 			program = p;
-			vertices = new Vertex[8];
-			vertices[0].vert = new Vector3(1f, 1f, 1f);
-			vertices[1].vert = new Vector3(-1f, 1f, 1f);
-			vertices[2].vert = new Vector3(1f, -1f, 1f);
-			vertices[3].vert = new Vector3(1f, 1f, -1f);
-			vertices[4].vert = new Vector3(-1f, -1f, 1f);
-			vertices[5].vert = new Vector3(-1f, 1f, -1f);
-			vertices[6].vert = new Vector3(1f, -1f, -1f); 
-			vertices[7].vert = new Vector3(-1f, -1f, -1f);
+			vertices = new Vertex[3];
+			vertices[0].vert = new Vector3(1f, -1f, 1f);
+			vertices[1].vert = new Vector3(-1f, 0f, 1f);
+			vertices[2].vert = new Vector3(1f, 1f, -1f);
 
-			vertices[0].normal = new Vector3(1f, 1f, 1f);
-			vertices[1].normal = new Vector3(-1f, 1f, 1f);
-			vertices[2].normal = new Vector3(1f, -1f, 1f);
-			vertices[3].normal = new Vector3(1f, 1f, -1f);
-			vertices[4].normal = new Vector3(-1f, -1f, 1f);
-			vertices[5].normal = new Vector3(-1f, 1f, -1f);
-			vertices[6].normal = new Vector3(1f, -1f, -1f);
-			vertices[7].normal = new Vector3(-1f, -1f, -1f);
+			vertices[0].normal = new Vector3(0f, 1f, 0f);
+			vertices[1].normal = new Vector3(0f, 1f, 0f);
+			vertices[2].normal = new Vector3(0f, 1f, 0f);
 
-			triangles = new Triangle[12];
-			triangles[0] = new Triangle(4,1,0);
-			triangles[1] = new Triangle(0, 4, 2);
-			triangles[2] = new Triangle(0, 2, 6);
-			triangles[3] = new Triangle(0, 6, 3);
-			triangles[4] = new Triangle(0, 3, 5);
-			triangles[5] = new Triangle(0, 5, 1);
-			triangles[6] = new Triangle(7, 6, 3);
-			triangles[7] = new Triangle(7, 3, 5);
-			triangles[8] = new Triangle(7, 5, 1);
-			triangles[9] = new Triangle(7, 1, 4);
-			triangles[10] = new Triangle(7, 4, 2);
-			triangles[11] = new Triangle(7, 2, 6);
+			vertices[0].texcoord = new Vector2(0f, 1f);
+			vertices[1].texcoord = new Vector2(1f, 0f);
+			vertices[2].texcoord = new Vector2(1f, 1f); 
+
+			triangles = new Triangle[1];
+			triangles[0] = new Triangle(2,1,0);
 
 			calculateBox();
 			load();
@@ -101,10 +84,38 @@ namespace Subdivision_Project
 			//calculate the bounding box, potentially rewrite vertex values
 			calculateBox();
 			//create required opengl objects
+			face();
 			transform = Matrix4.Identity;
 
 			load();
 		}
+
+		private void face()
+		{
+			Vector3 v1, v2, norm;
+			int[] count = new int[vertices.Length];
+			for (int i = 0; i < vertices.Length; i++)
+			{
+				vertices[i].normal = new Vector3(0, 0, 0);
+			}
+			foreach (Triangle t in triangles)
+			{
+				v1 = vertices[t.i1].vert - vertices[t.i0].vert;
+				v2 = vertices[t.i2].vert - vertices[t.i0].vert;
+				norm = Vector3.Normalize(Vector3.Cross(v1, v2));
+				vertices[t.i0].normal += norm;
+				vertices[t.i1].normal += norm;
+				vertices[t.i2].normal += norm;
+				count[t.i0]++; count[t.i1]++; count[t.i2]++;
+			}
+
+			for(int i = 0; i < vertices.Length; i++)
+			{
+				vertices[i].normal /= count[i];
+				vertices[i].normal = Vector3.Normalize(vertices[i].normal);
+			}
+		}
+
 
 		//naive calculation of a bounding box for the model
 		private void calculateBox()
@@ -143,33 +154,30 @@ namespace Subdivision_Project
 		public void load()
 		{
 			//calculate size of index and vertex buffers
-			int vertSize = vertices.Length * Marshal.SizeOf(typeof(Vertex));
-			int triSize = triangles.Length * Marshal.SizeOf(typeof(Triangle));
+			int vertSize = Marshal.SizeOf(typeof(Vertex));
+			int triSize = Marshal.SizeOf(typeof(Triangle));
+			int vecSize = Marshal.SizeOf(typeof(Vector3));
 
 			GL.GenVertexArrays(1, out vao);
 			GL.BindVertexArray(vao);
 
 			GL.GenBuffers(1, out vbo);
 			GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
-			GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)vertSize, vertices, BufferUsageHint.StaticDraw);
+			GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(vertSize * vertices.Length), vertices, BufferUsageHint.StaticDraw);
 
 			GL.GenBuffers(1, out ibo);
 			GL.BindBuffer(BufferTarget.ElementArrayBuffer, ibo);
-			GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)sizeof(int), triangles, BufferUsageHint.StaticDraw);
+			GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(triSize * triangles.Length), triangles, BufferUsageHint.StaticDraw);
 
 			GL.EnableVertexAttribArray(0);
 			GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, vertSize, 0);
 
 			GL.EnableVertexAttribArray(1);
-			GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, vertSize, Marshal.SizeOf(typeof(Vector3)));
+			GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, true, vertSize, vecSize);
 
 			GL.EnableVertexAttribArray(2);
-			GL.VertexAttribPointer(2, 2, VertexAttribPointerType.Float, false, vertSize, 2 * Marshal.SizeOf(typeof(Vector3)));
-
+			GL.VertexAttribPointer(2, 2, VertexAttribPointerType.Float, false, vertSize, 2 * vecSize);
 		
-			GL.BindAttribLocation(program, 0, "position");
-			GL.BindAttribLocation(program, 1, "normal");
-			GL.BindAttribLocation(program, 2, "texcoord");
 			//state is set, unbind objects so they are not modified.
 			GL.BindVertexArray(0);
 			GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
@@ -194,6 +202,8 @@ namespace Subdivision_Project
 		//draw the model
 		public void draw()
 		{
+
+			Console.Out.WriteLine("Locations: " + vao + ", " + vbo + ", " + ibo);
 			GL.BindVertexArray(vao);
 			GL.DrawElements(BeginMode.Triangles, triangles.Length *3, DrawElementsType.UnsignedInt, 0);
 			GL.BindVertexArray(0);
@@ -222,7 +232,5 @@ namespace Subdivision_Project
 			public Vector3 normal;
 			public Vector2 texcoord;
 		}
-
-
 	}
 }

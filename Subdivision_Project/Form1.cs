@@ -36,6 +36,12 @@ namespace Subdivision_Project
 		private void gl_load(object sender, EventArgs e)
 		{
 			//Get OpenGL version
+			GL.ClearColor(Color.Bisque);
+			GL.Enable(EnableCap.DepthTest);
+			GL.FrontFace(FrontFaceDirection.Ccw);
+			GL.Enable(EnableCap.CullFace);
+			GL.CullFace(CullFaceMode.Back);
+
 			var glVersion = GL.GetString(StringName.Version);
 			int major = int.Parse(glVersion[0].ToString());
 			int minor = int.Parse(glVersion[2].ToString());
@@ -49,11 +55,9 @@ namespace Subdivision_Project
 			setProjection();
 			setView();
 				
-			Model m = new Model(program);
+		/*	Model m = new Model(program);
 			models.Add(m);
-			setView(target: m.center);
-	
-			GL.ClearColor(Color.Bisque);
+			setView(target: m.center);	*/
 		}
 
 		private void setProjection()
@@ -65,6 +69,7 @@ namespace Subdivision_Project
 
 		private void glResize(object sender, EventArgs e)
 		{
+			GL.Viewport(glControl1.ClientRectangle);
 			setProjection();
 			glControl1.Invalidate();
 		}
@@ -79,7 +84,7 @@ namespace Subdivision_Project
 		private void setView(Vector3? eye = null, Vector3? up = null, Vector3? target = null)
 		{
 			if(eye == null)
-				eye = new Vector3(0,0,-2);
+				eye = new Vector3(0,0,4);
 			if(up == null)
 				up = new Vector3(0,1,0);
 			if(target == null)
