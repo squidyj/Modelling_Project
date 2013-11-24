@@ -202,8 +202,6 @@ namespace Subdivision_Project
 		//draw the model
 		public void draw()
 		{
-
-			Console.Out.WriteLine("Locations: " + vao + ", " + vbo + ", " + ibo);
 			GL.BindVertexArray(vao);
 			GL.DrawElements(BeginMode.Triangles, triangles.Length *3, DrawElementsType.UnsignedInt, 0);
 			GL.BindVertexArray(0);

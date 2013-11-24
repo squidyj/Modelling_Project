@@ -47,6 +47,9 @@
 			this.glControl1.VSync = false;
 			this.glControl1.Load += new System.EventHandler(this.gl_load);
 			this.glControl1.Paint += new System.Windows.Forms.PaintEventHandler(this.glPaint);
+			this.glControl1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.downClick);
+			this.glControl1.MouseMove += new System.Windows.Forms.MouseEventHandler(this.mouseDrag);
+			this.glControl1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.upClick);
 			this.glControl1.Resize += new System.EventHandler(this.glResize);
 			// 
 			// menuStrip1
@@ -71,14 +74,14 @@
 			// loadModelToolStripMenuItem
 			// 
 			this.loadModelToolStripMenuItem.Name = "loadModelToolStripMenuItem";
-			this.loadModelToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+			this.loadModelToolStripMenuItem.Size = new System.Drawing.Size(137, 22);
 			this.loadModelToolStripMenuItem.Text = "Load Model";
 			this.loadModelToolStripMenuItem.Click += new System.EventHandler(this.loadModel);
 			// 
 			// exitToolStripMenuItem
 			// 
 			this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-			this.exitToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+			this.exitToolStripMenuItem.Size = new System.Drawing.Size(137, 22);
 			this.exitToolStripMenuItem.Text = "Exit";
 			// 
 			// Form1
@@ -89,7 +92,7 @@
 			this.Controls.Add(this.glControl1);
 			this.Controls.Add(this.menuStrip1);
 			this.MainMenuStrip = this.menuStrip1;
-			this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+			this.Margin = new System.Windows.Forms.Padding(2);
 			this.Name = "Form1";
 			this.Text = "Form1";
 			this.menuStrip1.ResumeLayout(false);

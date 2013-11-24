@@ -21,12 +21,19 @@ namespace Subdivision_Project
 		float fov = 0.5f; 
 		float ratio;
 
+		//if the click point is outside of the unit circle, return this
+		Vector3 badPoint = new Vector3(55, 55, 55);
+		bool mousedown = false;
+		Vector3 oldPoint, origin;
+		float radius;
+		Matrix4 track = Matrix4.Identity;
+
 		//list of models that are loaded in memory, potentially being rendered
 		List<Model> models;
 		//projection matrix
 		Matrix4 projection;
 		//Modelview stack 
-		MatrixStack modelview;
+		Matrix4 view;
 
 		public Form1()
 		{
@@ -89,13 +96,22 @@ namespace Subdivision_Project
 				up = new Vector3(0,1,0);
 			if(target == null)
 				target = new Vector3(0,0,0);
-
-			modelview = new MatrixStack(mvLoc);
-			modelview.push(Matrix4.LookAt((Vector3)eye, (Vector3)up, (Vector3)target));
+			view = Matrix4.LookAt((Vector3)eye, (Vector3)up, (Vector3)target);
 		}
 
 		private void initMatrices()
 		{
+			GL.UniformMatrix4(pLoc, false, ref projection);
+		}
+
+		private string getShader(string ss)
+		{
+			string path = Directory.GetCurrentDirectory();
+			path = Directory.GetParent(path).ToString();
+			path = Directory.GetParent(path).ToString();
+			path = path + "\\" + ss;
+			Console.Out.WriteLine(path);
+			return path;
 		}
 
 		private void createShaders()
@@ -104,8 +120,8 @@ namespace Subdivision_Project
 			program = GL.CreateProgram();
 
 			//read in the shader source code from their respective files
-			StreamReader v_read = new StreamReader("D:\\Projects\\Modelling_Project\\Subdivision_Project\\v_shader.glsl");
-			StreamReader f_read = new StreamReader("D:\\Projects\\Modelling_Project\\Subdivision_Project\\f_shader.glsl");
+			StreamReader v_read = new StreamReader(getShader("v_shader.glsl"));
+			StreamReader f_read = new StreamReader(getShader("f_shader.glsl"));
 			string v_string = v_read.ReadToEnd();
 			string f_string = f_read.ReadToEnd();
 
@@ -138,12 +154,13 @@ namespace Subdivision_Project
 		private void glPaint(object sender, PaintEventArgs e)
 		{
 			GL.Clear(ClearBufferMask.DepthBufferBit | ClearBufferMask.ColorBufferBit | ClearBufferMask.StencilBufferBit); // Clear required buffers
+			Matrix4 modelview;
 			foreach (Model m in models)
 				if (m.Loaded)
 				{
-					//modelview.push(m.Transform);
+					modelview = track * view * m.Transform;
+					GL.UniformMatrix4(mvLoc, false, ref modelview);
 					m.draw();
-					//modelview.pop();
 				}
 			glControl1.SwapBuffers();
 		}
@@ -160,5 +177,55 @@ namespace Subdivision_Project
 			setView(target: m.center); 
 			glControl1.Invalidate();
 		}
+
+		private void downClick(object sender, MouseEventArgs e)
+		{
+			oldPoint = findSphereCoords(e.Location);
+			if (oldPoint != badPoint)
+				mousedown = true;
+
+			Console.Out.WriteLine(oldPoint);
+		}
+
+		private void mouseDrag(object sender, MouseEventArgs e)
+		{
+			if (!mousedown)
+				return;
+			Vector3 newPoint = findSphereCoords(e.Location);
+			if (newPoint == badPoint)
+			{
+				mousedown = false;
+				return;
+			}
+			Vector3 o = new Vector3(0, 0, 0);
+			Vector3 v1 = Vector3.Normalize(oldPoint - o);
+			Vector3 v2 = Vector3.Normalize(newPoint - o);
+			Vector3 axis = Vector3.Normalize(Vector3.Cross(v1, v2));
+			float angle = (float)Math.Acos(Vector3.Dot(v1, v2));
+			track = track * Matrix4.CreateFromAxisAngle(axis, angle);
+			oldPoint = newPoint;
+			glControl1.Invalidate();
+
+		}
+
+		private Vector3 findSphereCoords(Point p)
+ 		{
+			int h = glControl1.Height;
+			int w = glControl1.Width;
+
+			float x = (float)(2 * p.X - w) / w;
+			float y = (float)(h - 2 * p.Y) / h / ratio;
+			float z = 1 - x * x - y * y;
+			if (z <= 0)
+				return badPoint;
+			z = (float)Math.Sqrt(z);
+			return new Vector3(x, y, z);
+		}
+
+		private void upClick(object sender, MouseEventArgs e)
+		{
+			mousedown = false;
+		}
+
 	}
 }
