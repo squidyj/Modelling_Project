@@ -203,6 +203,93 @@ namespace Subdivision_Project
 			load();
 		}
 
+        public Matrix4 add(Matrix4 m, Matrix4 n)
+        {
+            return new Matrix4(
+                m.M11+n.M11, m.M12+n.M12, m.M13+n.M13, m.M14+n.M14,
+                m.M21+n.M21, m.M22+n.M22, m.M23+n.M23, m.M24+n.M24,
+                m.M31+n.M31, m.M32+n.M32, m.M33+n.M33, m.M34+n.M34,
+                m.M41+n.M41, m.M42+n.M42, m.M43+n.M43, m.M44+n.M44);
+        }
+
+        private Matrix4[] computeQ(Vertex[] theVertices, Triangle[] theTriangles)
+        {
+            int numVertices = theVertices.Length;
+            int numTris = theTriangles.Length;
+
+            Matrix4[] q = new Matrix4[numVertices];
+
+            for (int i = 0; i < numVertices; i++)
+            {
+                Matrix4 qi = new Matrix4();
+
+                // TODO: come up with a better way to get triangles?
+
+                // for every triangle containing this vertex
+                for (int j = 0; j < numTris; j++)
+                {
+                    Triangle target = theTriangles[j];
+                    if (target.v0 == i || target.v1 == i || target.v2 == i)
+                    {
+                        // Construct Kp, the matrix
+                        // [ a^2 ab  ac  ad
+                        //   ab  b^2 bc  bd
+                        //   ac  bc  c^2 cd
+                        //   ad  bd  cd  d^2 ]
+
+                        Matrix4 kp = new Matrix4();
+                        Plane plane = new Plane(
+                            theVertices[target.v0].vert,
+                            theVertices[target.v1].vert,
+                            theVertices[target.v2].vert);
+
+                        kp.Row0.X = plane.a * plane.a;
+                        kp.Row0.Y = kp.Row1.X = plane.a * plane.b;
+                        kp.Row0.Z = kp.Row2.X = plane.a * plane.c;
+                        kp.Row0.W = kp.Row3.X = plane.a * plane.d;
+
+                        kp.Row1.Y = plane.b * plane.b;
+                        kp.Row1.Z = kp.Row2.Y = plane.b * plane.c;
+                        kp.Row1.W = kp.Row3.Y = plane.b * plane.d;
+
+                        kp.Row2.Z = plane.c * plane.c;
+                        kp.Row2.W = kp.Row3.Z = plane.c * plane.d;
+
+                        kp.Row3.W = plane.d * plane.d;
+
+                        qi = add(qi, kp);
+                    }
+                }
+
+                q[i] = qi;
+            }
+
+            return q;
+        }
+
+        // TODO: Complete this
+
+        public void simplify(int steps)
+        {
+            // Surface Simplification Using Quadric Error Metrics (Garland)
+
+            // 1. Compute the Q matrices for all the initial vertices.
+            Matrix4[] q = computeQ(vertices, triangles);
+
+            // 2. Select all valid pairs.
+            
+            // 3. Compute the optimal contraction target v for each valid pair
+            // (v_1, v_2). The error v^T (Q_1 + Q_2)v of this target vertex becomes
+            // the cost of contracting that pair.
+
+            // 4. Place all the pairs in a heap keyed on cost with the minimum
+            // cost pair at the top
+
+            // 5. Iteratively remove the pair (v_1, v_2) of least cost from the heap,
+            // contract this pair, and update the costs of all valid pairs involving
+            // v_1.
+        }
+
 		private void face()
 		{
 			Vector3 v1, v2, norm;
@@ -351,5 +438,23 @@ namespace Subdivision_Project
 			public Vector3 kd;
 			float exp;
 		}
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct Plane
+        {
+            // Create a plane given three vertices
+            public Plane(Vector3 tri_v1, Vector3 tri_v2, Vector3 tri_v3)
+            {
+                Vector3 ab = tri_v1 - tri_v2;
+                Vector3 ac = tri_v1 - tri_v3;
+                Vector3 plane = Vector3.Cross(ab, ac);
+                a = plane.X;
+                b = plane.Y;
+                c = plane.Z;
+
+                d = -((a * tri_v1.X) + (b * tri_v1.Y) + (c * tri_v1.Z));
+            }
+            public float a, b, c, d;
+        }
 	}
 }
