@@ -77,9 +77,9 @@ namespace Subdivision_Project
 						{
 							case 4:
 								Model.Triangle objTriangle = new Model.Triangle();
-								objTriangle.i0 = ParseFaceParameter(parameters[1]);
-								objTriangle.i1 = ParseFaceParameter(parameters[2]);
-								objTriangle.i2 = ParseFaceParameter(parameters[3]);
+								objTriangle.v0 = ParseFaceParameter(parameters[1]);
+								objTriangle.v1 = ParseFaceParameter(parameters[2]);
+								objTriangle.v2 = ParseFaceParameter(parameters[3]);
 								mTriangles.Add(objTriangle);
 								break;
 
@@ -155,9 +155,9 @@ namespace Subdivision_Project
 			while(vs.Count > 2)
 			{
 				tri = new Model.Triangle();
-				tri.i0 = vs[0];
-				tri.i1 = vs[1];
-				tri.i2 = vs[2];
+				tri.v0 = vs[0];
+				tri.v1 = vs[1];
+				tri.v2 = vs[2];
 				ts.Add(tri);
 				vs.RemoveAt(1);
 			}

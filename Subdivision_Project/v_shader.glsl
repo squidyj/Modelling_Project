@@ -12,8 +12,10 @@ uniform mat4 projection;
 uniform mat4 modelview;
 void main () {
 
-	fpos = position;
-	fnorm = normal;
-	lpos = vec3 (0, 3, -1);
-	gl_Position = projection * modelview * vec4(position, 1);
+	vec4 ipos = modelview * vec4(position, 1); 
+	fnorm = (modelview * vec4(normal, 0)).xyz;
+	fpos = ipos.xyz;
+	lpos = vec3 (0, 5, -5);
+	lpos = (modelview * vec4(lpos, 1)).xyz;
+	gl_Position = projection * ipos;
 }

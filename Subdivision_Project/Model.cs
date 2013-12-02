@@ -36,6 +36,7 @@ namespace Subdivision_Project
 		Vector3 max;
 		float scale;
 
+		int[][] neighbours;
 		//index array
 		Triangle[] triangles;
 		public Triangle[] Triangles
@@ -44,6 +45,8 @@ namespace Subdivision_Project
 			set { triangles = value; }
 		}
 
+		HashSet<int>[] vFaces;
+	
 		//vertex values, texture uv, and vertex normal
 		Vertex[] vertices;
 		public Vertex[] Vertices
@@ -70,8 +73,7 @@ namespace Subdivision_Project
 
 			triangles = new Triangle[1];
 			triangles[0] = new Triangle(2,1,0);
-
-			calculateBox();
+			calculate();
 			load();
 		}
 
@@ -82,11 +84,122 @@ namespace Subdivision_Project
 			//load and interpret file format
 			ObjLoader.Load(this, filename);
 			//calculate the bounding box, potentially rewrite vertex values
-			calculateBox();
+			calculate();
 			//create required opengl objects
 			face();
 			transform = Matrix4.Identity;
 
+			load();
+		}
+
+		//make sure all the vertices know what they are adjacent to
+		private void makeAdjacency()
+		{
+
+			vFaces = new HashSet<int>[vertices.Length];
+			for (int i = 0; i < vFaces.Length; i++)
+				vFaces[i] = new HashSet<int>();
+
+			foreach (Triangle t in triangles)
+			{
+				vFaces[t.v0].Add(t.v1);
+				vFaces[t.v0].Add(t.v2);
+
+				vFaces[t.v1].Add(t.v2);
+				vFaces[t.v1].Add(t.v0);
+
+				vFaces[t.v2].Add(t.v1);
+				vFaces[t.v2].Add(t.v0);
+			}
+			int c = 0;
+			foreach (HashSet<int> hs in vFaces)
+			{
+				if (hs.Count == 2)
+				{
+					c++;
+				}
+			}
+			Console.Out.WriteLine(c);
+		}
+
+		//return the index of the current vertex
+		private int edgeVertex(int v0, int v1, int o1, List<Vertex> verts, Dictionary<Vertex, int> lookup)
+		{
+			//find the other remaining vertex 
+			HashSet<int> hs = new HashSet<int>(vFaces[v0].Intersect(vFaces[v1]));
+			hs.Remove(o1);
+			if (hs.Count == 2)
+				Console.Out.WriteLine("correct");
+			int o2 = -1;
+			if (hs.Count > 0)
+				o2 = hs.Last();
+			Vertex v;
+			if(o2 != -1)
+				v = 0.375f * (verts[v0] + verts[v1]) + 0.125f * (verts[o1] + verts[o2]);
+			else
+				v = 0.5f * (verts[v0] + verts[v1]);
+			int n;
+			if(lookup.TryGetValue(v, out n))
+				return n;
+			n = verts.Count;
+			verts.Add(v);
+			lookup.Add(v, n);
+			return n;
+		}
+
+
+		public void subdivide()
+		{
+
+			List<Triangle> mTriangles = new List<Triangle>();
+			List<Vertex> mVerts = vertices.ToList();
+			Dictionary<Vertex, int> lookup = new Dictionary<Vertex, int>();
+			int off = vertices.Length;
+			int v0, v1, v2;
+
+			//begin by updating adjacency data for all vertices
+			//ideally this would be maintained with each modifica
+			makeAdjacency();
+			//for each face in the mesh
+			int m = triangles.Length;
+			Triangle t;
+			for (int i = 0; i < m; i++)
+			{
+				t = triangles[i];
+				//construct a vertex on each edge
+				v0 = edgeVertex(t.v0, t.v1, t.v2, mVerts, lookup);
+				v1 = edgeVertex(t.v1, t.v2, t.v0, mVerts, lookup);
+				v2 = edgeVertex(t.v2, t.v0, t.v1, mVerts, lookup);
+
+				//construct the 4 new faces maintaining the original winding
+				
+				mTriangles.Add(new Triangle(t.v0, v0, v2));
+				mTriangles.Add(new Triangle(v0, t.v1, v1));
+				mTriangles.Add(new Triangle(v0, v1, v2));
+				mTriangles.Add(new Triangle(v2, v1, t.v2));
+		
+				//Console.Out.WriteLine(i);
+			}
+
+			Vertex v, vi;
+			float a;
+			int n;
+			
+			for (int i = 0; i < off; i++)
+			{
+
+				n = vFaces[i].Count;
+				a = 1 / (float)n * (float)(0.625f - Math.Pow((0.375f + 0.25f * Math.Cos(2 * Math.PI / n)), 2));
+				vi = (1 - n * a) * mVerts[i];
+				v = new Vertex();
+				foreach (int j in vFaces[i])
+					v += mVerts[j];
+				v = vi + a * v;
+				mVerts[i] = v;
+			}
+			 
+			vertices = mVerts.ToArray();
+			triangles = mTriangles.ToArray();
 			load();
 		}
 
@@ -100,13 +213,13 @@ namespace Subdivision_Project
 			}
 			foreach (Triangle t in triangles)
 			{
-				v1 = vertices[t.i1].vert - vertices[t.i0].vert;
-				v2 = vertices[t.i2].vert - vertices[t.i0].vert;
+				v1 = vertices[t.v1].vert - vertices[t.v0].vert;
+				v2 = vertices[t.v2].vert - vertices[t.v0].vert;
 				norm = Vector3.Normalize(Vector3.Cross(v1, v2));
-				vertices[t.i0].normal += norm;
-				vertices[t.i1].normal += norm;
-				vertices[t.i2].normal += norm;
-				count[t.i0]++; count[t.i1]++; count[t.i2]++;
+				vertices[t.v0].normal += norm;
+				vertices[t.v1].normal += norm;
+				vertices[t.v2].normal += norm;
+				count[t.v0]++; count[t.v1]++; count[t.v2]++;
 			}
 
 			for(int i = 0; i < vertices.Length; i++)
@@ -118,7 +231,7 @@ namespace Subdivision_Project
 
 
 		//naive calculation of a bounding box for the model
-		private void calculateBox()
+		private void calculate()
 		{
 			min = new Vector3();
 			max = new Vector3();
@@ -142,14 +255,9 @@ namespace Subdivision_Project
 			center.X = 0.5f * (max.X + min.X);
 			center.Y = 0.5f * (max.Y + min.Y);
 			center.Z = 0.5f * (max.Z + min.Z);
-
-			Console.Out.WriteLine(center);
-			Console.Out.WriteLine(min);
-			Console.Out.WriteLine(max);
-			Console.Out.WriteLine(vertices.Length);
-			Console.Out.WriteLine(triangles.Length);
 		}
 
+		
 		//set up model attributes and bind buffer for rendering
 		public void load()
 		{
@@ -184,20 +292,13 @@ namespace Subdivision_Project
 			GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
 			loaded = true;
 		}
-		
+
 		//unbind buffers, clean up gpu-side memory, free locations
 		public void unload()
 		{
 
 		}
 
-		//generate the control mesh and displacement map, save to file, create new displacement mapped model
-		public Model subdivide()
-		{
-			//generate a control mesh
-			//
-			return null;
-		}
 
 		//draw the model
 		public void draw()
@@ -210,14 +311,14 @@ namespace Subdivision_Project
 		[StructLayout(LayoutKind.Sequential)]
 		public struct Triangle
 		{
-			public Triangle(int n0, int n1, int n2)
+			public Triangle(int i0, int i1, int i2)
 			{
-				i0 = n0; i1 = n1; i2 = n2;
+				v0 = i0; v1 = i1; v2 = i2;
 			}
-			public int i0;
-			public int i1;
-			public int i2;
+			public int v0, v1, v2;
 		}
+
+		//extended vertex contains a list of faces which the vertex participates in
 
 		[StructLayout(LayoutKind.Sequential)]
 		public struct Vertex
@@ -226,9 +327,29 @@ namespace Subdivision_Project
 			{
 				vert = v; normal = n; texcoord = t;
 			}
+			public static Vertex operator +(Vertex v1, Vertex v2)
+			{
+				return new Vertex(v1.vert + v2.vert, v1.normal + v2.normal, v1.texcoord + v2.texcoord);
+			}
+			public static Vertex operator *(float s, Vertex v)
+			{
+				return new Vertex(s * v.vert, s * v.normal, s * v.texcoord);
+			}
 			public Vector3 vert;
 			public Vector3 normal;
 			public Vector2 texcoord;
+		}
+
+		[StructLayout(LayoutKind.Sequential)]
+		public struct Material
+		{
+			public Material(Vector3 s, Vector3 d, float e)
+			{
+				ks = s; kd = d; exp = e;
+			}
+			public Vector3 ks;
+			public Vector3 kd;
+			float exp;
 		}
 	}
 }

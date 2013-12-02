@@ -20,13 +20,15 @@ namespace Subdivision_Project
 		//field of view
 		float fov = 0.5f; 
 		float ratio;
-
+		float zoomAmt = 0.05f;
 		//if the click point is outside of the unit circle, return this
 		Vector3 badPoint = new Vector3(55, 55, 55);
 		bool mousedown = false;
-		Vector3 oldPoint, origin;
+		Vector3 oldPoint;
+		Vector3 origin = new Vector3(0, 0, 4);
 		float radius;
 		Matrix4 track = Matrix4.Identity;
+		Model activeModel;
 
 		//list of models that are loaded in memory, potentially being rendered
 		List<Model> models;
@@ -90,8 +92,10 @@ namespace Subdivision_Project
 		//use nullables to allow the parameters to be optional 
 		private void setView(Vector3? eye = null, Vector3? up = null, Vector3? target = null)
 		{
-			if(eye == null)
-				eye = new Vector3(0,0,4);
+			if (eye == null)
+				eye = origin;
+			else
+				origin = (Vector3)eye;
 			if(up == null)
 				up = new Vector3(0,1,0);
 			if(target == null)
@@ -110,7 +114,6 @@ namespace Subdivision_Project
 			path = Directory.GetParent(path).ToString();
 			path = Directory.GetParent(path).ToString();
 			path = path + "\\" + ss;
-			Console.Out.WriteLine(path);
 			return path;
 		}
 
@@ -155,10 +158,11 @@ namespace Subdivision_Project
 		{
 			GL.Clear(ClearBufferMask.DepthBufferBit | ClearBufferMask.ColorBufferBit | ClearBufferMask.StencilBufferBit); // Clear required buffers
 			Matrix4 modelview;
+			//GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
 			foreach (Model m in models)
 				if (m.Loaded)
 				{
-					modelview = track * view * m.Transform;
+					modelview = track * view;
 					GL.UniformMatrix4(mvLoc, false, ref modelview);
 					m.draw();
 				}
@@ -171,9 +175,11 @@ namespace Subdivision_Project
 			OpenFileDialog open = new OpenFileDialog();
 			open.Filter = "Object Files (.obj)|*.obj|All Files (*.*)|*.*";
 			open.FilterIndex = 1;
-			open.ShowDialog();
+			if (open.ShowDialog() != DialogResult.OK)
+				return;
 			Model m = new Model(open.FileName, program);
 			models.Add(m);
+			activeModel = m;
 			setView(target: m.center); 
 			glControl1.Invalidate();
 		}
@@ -184,7 +190,6 @@ namespace Subdivision_Project
 			if (oldPoint != badPoint)
 				mousedown = true;
 
-			Console.Out.WriteLine(oldPoint);
 		}
 
 		private void mouseDrag(object sender, MouseEventArgs e)
@@ -202,7 +207,9 @@ namespace Subdivision_Project
 			Vector3 v2 = Vector3.Normalize(newPoint - o);
 			Vector3 axis = Vector3.Normalize(Vector3.Cross(v1, v2));
 			float angle = (float)Math.Acos(Vector3.Dot(v1, v2));
-			track = track * Matrix4.CreateFromAxisAngle(axis, angle);
+			Matrix4 temp = track * Matrix4.CreateFromAxisAngle(axis, angle);
+			Matrix4 t = new Matrix4();
+			Console.Out.WriteLine(t);
 			oldPoint = newPoint;
 			glControl1.Invalidate();
 
@@ -225,6 +232,45 @@ namespace Subdivision_Project
 		private void upClick(object sender, MouseEventArgs e)
 		{
 			mousedown = false;
+		}
+
+		private void keyZoom(object sender, System.Windows.Forms.KeyPressEventArgs e)
+		{
+			Vector3 trans;
+			if (e.KeyChar == 'w')
+				trans = new Vector3(0, 0, zoomAmt);
+			else if (e.KeyChar == 's')
+				trans = new Vector3(0, 0, -zoomAmt);
+			else
+				return;
+			origin += trans;
+			view = view * Matrix4.CreateTranslation(trans);
+
+			glControl1.Invalidate();
+		}
+
+		private void button1_Click(object sender, EventArgs e)
+		{
+			activeModel.subdivide();
+			glControl1.Invalidate();
+		}
+
+		private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			int mode = ((ComboBox)sender).SelectedIndex;
+			switch (mode)
+			{
+				case 0:
+					GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+					break;
+				case 1:
+					GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+					break;
+				case 2:
+					GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Point);
+					break;
+			}
+			glControl1.Invalidate();
 		}
 
 	}
