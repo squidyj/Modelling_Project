@@ -212,10 +212,10 @@ namespace Subdivision_Project
                 m.M41+n.M41, m.M42+n.M42, m.M43+n.M43, m.M44+n.M44);
         }
 
-        private Matrix4[] computeQ(Vertex[] theVertices, Triangle[] theTriangles)
+        private Matrix4[] computeQ(Vertex[] theVertices, LinkedList<int>[] trisUsingVertex)
         {
             int numVertices = theVertices.Length;
-            int numTris = theTriangles.Length;
+            int numTris = trisUsingVertex.Length;
 
             Matrix4[] q = new Matrix4[numVertices];
 
@@ -224,11 +224,12 @@ namespace Subdivision_Project
                 Matrix4 qi = new Matrix4();
 
                 // TODO: come up with a better way to get triangles?
+                LinkedListNode<int> currentTri = trisUsingVertex[i].First;
 
                 // for every triangle containing this vertex
-                for (int j = 0; j < numTris; j++)
+                while (currentTri!=null)
                 {
-                    Triangle target = theTriangles[j];
+                    Triangle target = triangles[currentTri.Value];
                     if (target.v0 == i || target.v1 == i || target.v2 == i)
                     {
                         // Construct Kp, the matrix
@@ -259,6 +260,8 @@ namespace Subdivision_Project
 
                         qi = add(qi, kp);
                     }
+
+                    currentTri = currentTri.Next;
                 }
 
                 q[i] = qi;
@@ -268,31 +271,17 @@ namespace Subdivision_Project
         }
 
         // TODO: Make this better
-        private bool isEdge(int v1, int v2)
+        private bool isEdge(int v1, int v2, LinkedList<int>[] trisUsingVertex)
         {
-            for (int i = 0; i < triangles.Length; i++)
+            LinkedListNode<int> currentTri = trisUsingVertex[v1].First;
+            while (currentTri != null)
             {
-                if (triangles[i].v0==v1)
+                if (triangles[currentTri.Value].v0 == v2 || triangles[currentTri.Value].v1 == v2 || triangles[currentTri.Value].v2 == v2)
                 {
-                    if (triangles[i].v1==v2 || triangles[i].v2==v2)
-                    {
-                        return true;
-                    }
+                    return true;
                 }
-                else if (triangles[i].v1==v1)
-                {
-                    if (triangles[i].v0==v2 || triangles[i].v2==v2)
-                    {
-                        return true;
-                    }
-                }
-                else if (triangles[i].v2==v1)
-                {
-                    if (triangles[i].v0==v2 || triangles[i].v1==v2)
-                    {
-                        return true;
-                    }
-                }
+
+                currentTri = currentTri.Next;
             }
             return false;
         }
@@ -323,12 +312,14 @@ namespace Subdivision_Project
             // depending on which one of these produces the lowest value of delta (v bar)
             Vector3 newVertex = (v1 + v2) / 2;
             float cost = calcCost(newVertex, qbar);
+
             float newCost;
             if ((newCost = calcCost(v1, qbar)) < cost)
             {
                 cost = newCost;
                 newVertex = v1;
             }
+
             if ((newCost = calcCost(v2, qbar)) < cost)
             {
                 cost = newCost;
@@ -343,9 +334,29 @@ namespace Subdivision_Project
         {
             // Surface Simplification Using Quadric Error Metrics (Garland)
 
-            // 1. Compute the Q matrices for all the initial vertices.
-            Matrix4[] q = computeQ(vertices, triangles);
+            Console.Out.WriteLine("Now generating vertex-triangle association list!");
+            // An easy way to get all the triangles associated with a vertex
+            LinkedList<int>[] trisUsingVertex = new LinkedList<int>[vertices.Length];
 
+            for (int i = 0; i < trisUsingVertex.Length; i++)
+            {
+                trisUsingVertex[i] = new LinkedList<int>();
+            }
+
+            for (int i = 0; i < triangles.Length; i++)
+            {
+                trisUsingVertex[triangles[i].v0].AddLast(i);
+                trisUsingVertex[triangles[i].v1].AddLast(i);
+                trisUsingVertex[triangles[i].v2].AddLast(i);
+            }
+            Console.Out.WriteLine("Vertex-triangle association list completed!");
+
+            Console.Out.WriteLine("Now computing Q matrices for initial vertices!");
+            // 1. Compute the Q matrices for all the initial vertices.
+            Matrix4[] q = computeQ(vertices, trisUsingVertex);
+            Console.Out.WriteLine("Q matrices for initial vertices completed!");
+
+            Console.Out.WriteLine("Now selecting valid pairs!");
             // 2. Select all valid pairs.
             VCSKicksCollection.PriorityQueue<VertexPair> validPairs = new VCSKicksCollection.PriorityQueue<VertexPair>();
 
@@ -361,7 +372,7 @@ namespace Subdivision_Project
                         // specified threshold, they are a valid pair.
                         Vector3 v1 = vertices[i].vert;
                         Vector3 v2 = vertices[j].vert;
-                        if (isEdge(i, j) || (v1 - v2).Length < threshold)
+                        if (isEdge(i, j, trisUsingVertex) || (v1 - v2).Length < threshold)
                         {
                             // 3. Compute the optimal contraction target v bar for each valid pair
                             // (v_1, v_2). The error v bar^T (Q_1 + Q_2)v bar of this target vertex becomes
@@ -375,7 +386,9 @@ namespace Subdivision_Project
                     }
                 }
             }
+            Console.Out.WriteLine("Valid pair selection completed!");
 
+            Console.Out.WriteLine("Now removing " + validPairs.Count + " pairs...");
             // 5. Iteratively remove the pair (v_1, v_2) of least cost from the heap,
             // contract this pair, and update the costs of all valid pairs involving
             // v_1.
@@ -383,28 +396,40 @@ namespace Subdivision_Project
             {
                 VertexPair removePair = validPairs.Dequeue();
 
-                Vertex oldVertex = vertices[removePair.v1];
+                Console.Out.WriteLine("Contracting pair: (" + removePair.v1 + ", " + removePair.v2 + ")");
+                Console.Out.WriteLine(removePair.v1 + ": " + vertices[removePair.v1].vert.X + ", "
+                    + vertices[removePair.v1].vert.Y + ", " + vertices[removePair.v1].vert.Z);
+                Console.Out.WriteLine(removePair.v2 + ": " + vertices[removePair.v2].vert.X + ", "
+                    + vertices[removePair.v2].vert.Y + ", " + vertices[removePair.v2].vert.Z);
 
                 vertices[removePair.v1].vert = removePair.newVertex;
 
+                Console.Out.WriteLine("New vertex: " + removePair.v1);
+                Console.Out.WriteLine(removePair.v1 + ": " + vertices[removePair.v1].vert.X + ", "
+                    + vertices[removePair.v1].vert.Y + ", " + vertices[removePair.v1].vert.Z);
+
                 // Contract pairs
-                for (int i = 0; i < triangles.Length; i++)
+                LinkedListNode<int> currentTri = trisUsingVertex[removePair.v2].First;
+
+                while (currentTri != null)
                 {
-                    if (triangles[i].v0 == removePair.v2)
+                    if (triangles[currentTri.Value].v0 == removePair.v2)
                     {
-                        triangles[i].v0 = removePair.v1;
+                        triangles[currentTri.Value].v0 = removePair.v1;
                     }
-                    else if (triangles[i].v1 == removePair.v2)
+                    else if (triangles[currentTri.Value].v1 == removePair.v2)
                     {
-                        triangles[i].v1 = removePair.v1;
+                        triangles[currentTri.Value].v1 = removePair.v1;
                     }
-                    else if (triangles[i].v2 == removePair.v2)
+                    else if (triangles[currentTri.Value].v2 == removePair.v2)
                     {
-                        triangles[i].v2 = removePair.v1;
+                        triangles[currentTri.Value].v2 = removePair.v1;
                     }
+                    currentTri = currentTri.Next;
                 }
 
-                // TODO: Remove now unused vertex
+                // Mark unused vertex
+                trisUsingVertex[removePair.v2] = null;                
 
                 // Update costs
                 VCSKicksCollection.PriorityQueue<VertexPair> updatePairs = new VCSKicksCollection.PriorityQueue<VertexPair>();
@@ -434,6 +459,43 @@ namespace Subdivision_Project
                 validPairs = updatePairs;
             }
 
+            int newNumVertices = vertices.Length;
+
+            // TODO: Remove now unused vertices
+            for (int i = 0; i < trisUsingVertex.Length; i++)
+            {
+                if (trisUsingVertex[i] == null)
+                {
+                    newNumVertices--;
+
+                    for (int j = i; j < newNumVertices; j++)
+                    {
+                        vertices[j] = vertices[j + 1];
+                    }
+
+                    for (int j = 0; j < triangles.Length; j++)
+                    {
+                        if (triangles[j].v0 > i) { triangles[j].v0--; }
+                        if (triangles[j].v1 > i) { triangles[j].v1--; }
+                        if (triangles[j].v2 > i) { triangles[j].v2--; }
+                    }
+                }
+            }
+
+            Vertex[] newVertices = new Vertex[newNumVertices];
+
+            for (int i = 0; i < newNumVertices; i++ )
+            {
+                newVertices[i] = vertices[i];
+            }
+
+            Console.Out.WriteLine("Number of vertices " + vertices.Length + " reduced to " + newNumVertices);
+
+            vertices = newVertices;
+
+            Console.Out.WriteLine("Pairs removed!");
+
+            load();
         }
 
 		private void face()
