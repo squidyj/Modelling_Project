@@ -267,9 +267,79 @@ namespace Subdivision_Project
             return q;
         }
 
-        // TODO: Complete this
+        // TODO: Make this better
+        private bool isEdge(int v1, int v2)
+        {
+            for (int i = 0; i < triangles.Length; i++)
+            {
+                if (triangles[i].v0==v1)
+                {
+                    if (triangles[i].v1==v2 || triangles[i].v2==v2)
+                    {
+                        return true;
+                    }
+                }
+                else if (triangles[i].v1==v1)
+                {
+                    if (triangles[i].v0==v2 || triangles[i].v2==v2)
+                    {
+                        return true;
+                    }
+                }
+                else if (triangles[i].v2==v1)
+                {
+                    if (triangles[i].v0==v2 || triangles[i].v1==v2)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
 
-        public void simplify(int steps)
+        private float calcCost(Vector3 v, Matrix4 q)
+        {
+            //delta(v) = v^TQv
+
+            float vx, vy, vz, vw;
+
+            vx = v.X * q.M11 + v.Y * q.M21 + v.Z * q.M31 + 1.0f * q.M41;
+            vy = v.X * q.M12 + v.Y * q.M22 + v.Z * q.M32 + 1.0f * q.M42;
+            vz = v.X * q.M13 + v.Y * q.M23 + v.Z * q.M33 + 1.0f * q.M43;
+            vw = v.X * q.M14 + v.Y * q.M24 + v.Z * q.M34 + 1.0f * q.M44;
+
+            return vx * v.X + vy * v.Y + vz * v.Z + vw * 1.0f;
+        }
+
+        // TODO: Improve new vertex selection
+        private VertexPair simpleVBarCalc(int v1s_index, int v2s_index, Matrix4[] q)
+        {
+            Matrix4 qbar = add(q[v1s_index], q[v2s_index]);
+
+            // Simple scheme: select either v1, v2, or (v1+v2)/2 
+            Vector3 v1 = vertices[v1s_index].vert;
+            Vector3 v2 = vertices[v2s_index].vert;
+
+            // depending on which one of these produces the lowest value of delta (v bar)
+            Vector3 newVertex = (v1 + v2) / 2;
+            float cost = calcCost(newVertex, qbar);
+            float newCost;
+            if ((newCost = calcCost(v1, qbar)) < cost)
+            {
+                cost = newCost;
+                newVertex = v1;
+            }
+            if ((newCost = calcCost(v2, qbar)) < cost)
+            {
+                cost = newCost;
+                newVertex = v2;
+            }
+
+            return new VertexPair(v1s_index, v2s_index, cost, newVertex);
+        }
+
+        // TODO: Complete this
+        public void simplify(int steps, float threshold)
         {
             // Surface Simplification Using Quadric Error Metrics (Garland)
 
@@ -277,17 +347,93 @@ namespace Subdivision_Project
             Matrix4[] q = computeQ(vertices, triangles);
 
             // 2. Select all valid pairs.
-            
-            // 3. Compute the optimal contraction target v for each valid pair
-            // (v_1, v_2). The error v^T (Q_1 + Q_2)v of this target vertex becomes
-            // the cost of contracting that pair.
+            VCSKicksCollection.PriorityQueue<VertexPair> validPairs = new VCSKicksCollection.PriorityQueue<VertexPair>();
 
-            // 4. Place all the pairs in a heap keyed on cost with the minimum
-            // cost pair at the top
+            int numVertices = vertices.Length;
+
+            for (int i = 0; i < numVertices; i++)
+            {
+                for (int j = 0; j < numVertices; j++)
+                {
+                    if (i != j)
+                    {
+                        // For every two unique vertices, if they make up an edge or are within the
+                        // specified threshold, they are a valid pair.
+                        Vector3 v1 = vertices[i].vert;
+                        Vector3 v2 = vertices[j].vert;
+                        if (isEdge(i, j) || (v1 - v2).Length < threshold)
+                        {
+                            // 3. Compute the optimal contraction target v bar for each valid pair
+                            // (v_1, v_2). The error v bar^T (Q_1 + Q_2)v bar of this target vertex becomes
+                            // the cost of contracting that pair.
+
+                            // 4. Place all the pairs in a heap keyed on cost with the minimum
+                            // cost pair at the top
+
+                            validPairs.Enqueue(simpleVBarCalc(i, j, q));
+                        }
+                    }
+                }
+            }
 
             // 5. Iteratively remove the pair (v_1, v_2) of least cost from the heap,
             // contract this pair, and update the costs of all valid pairs involving
             // v_1.
+            while (validPairs.Count > 0)
+            {
+                VertexPair removePair = validPairs.Dequeue();
+
+                Vertex oldVertex = vertices[removePair.v1];
+
+                vertices[removePair.v1].vert = removePair.newVertex;
+
+                // Contract pairs
+                for (int i = 0; i < triangles.Length; i++)
+                {
+                    if (triangles[i].v0 == removePair.v2)
+                    {
+                        triangles[i].v0 = removePair.v1;
+                    }
+                    else if (triangles[i].v1 == removePair.v2)
+                    {
+                        triangles[i].v1 = removePair.v1;
+                    }
+                    else if (triangles[i].v2 == removePair.v2)
+                    {
+                        triangles[i].v2 = removePair.v1;
+                    }
+                }
+
+                // TODO: Remove now unused vertex
+
+                // Update costs
+                VCSKicksCollection.PriorityQueue<VertexPair> updatePairs = new VCSKicksCollection.PriorityQueue<VertexPair>();
+
+                for (int i = 0; i < validPairs.Count; i++)
+                {
+                    VertexPair updatePair = validPairs.Dequeue();
+
+                    if (updatePair.v1 == removePair.v1 || updatePair.v2 == removePair.v1)
+                    {
+                        updatePairs.Enqueue(simpleVBarCalc(updatePair.v1, updatePair.v2, q));
+                    }
+                    else if (updatePair.v1 == removePair.v2)
+                    {
+                        updatePairs.Enqueue(simpleVBarCalc(removePair.v1, updatePair.v2, q));
+                    }
+                    else if (updatePair.v2 == removePair.v2)
+                    {
+                        updatePairs.Enqueue(simpleVBarCalc(updatePair.v1, removePair.v1, q));
+                    }
+                    else
+                    {
+                        updatePairs.Enqueue(updatePair);
+                    }
+                }
+
+                validPairs = updatePairs;
+            }
+
         }
 
 		private void face()
@@ -455,6 +601,41 @@ namespace Subdivision_Project
                 d = -((a * tri_v1.X) + (b * tri_v1.Y) + (c * tri_v1.Z));
             }
             public float a, b, c, d;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct VertexPair : IComparable
+        {
+            // Create a pair given two vertices
+            public VertexPair(int vertex1, int vertex2)
+            {
+                v1 = vertex1;
+                v2 = vertex2;
+                cost = -1;
+                newVertex = new Vector3();
+            }
+            // Keep track of an already calculated cost
+            public VertexPair(int vertex1, int vertex2, float theCost, Vector3 theNewVertex)
+            {
+                v1 = vertex1;
+                v2 = vertex2;
+                cost = theCost;
+                newVertex = theNewVertex;
+            }
+            
+            public int CompareTo(object obj)
+            {
+                if (obj is VertexPair)
+                {
+                    VertexPair v = (VertexPair)obj;
+                    return cost.CompareTo(v.cost);
+                }
+                else { throw new ArgumentException("Object is not a vertexPair."); }
+            }
+
+            public int v1, v2;
+            public Vector3 newVertex;
+            public float cost;
         }
 	}
 }
