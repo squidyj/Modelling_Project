@@ -349,7 +349,7 @@ namespace Subdivision_Project
             return false;
         }
 
-        private float calcContrCost(Vector3 v, Matrix4 q)
+        private float calcDeltaV(Vector3 v, Matrix4 q)
         {
             //delta(v) = v^TQv
 
@@ -364,7 +364,7 @@ namespace Subdivision_Project
         }
 
         // TODO: Improve new vertex selection
-        private VertexPair simpleVBarCalc(int v1s_index, int v2s_index, Matrix4[] q)
+        private VertexPair vBarCalc(int v1s_index, int v2s_index, Matrix4[] q)
         {
             Matrix4 qbar = add(q[v1s_index], q[v2s_index]);
 
@@ -373,21 +373,24 @@ namespace Subdivision_Project
             Vector3 v2 = vertices[v2s_index].vert;
 
             // depending on which one of these produces the lowest value of delta (v bar)
-            Vector3 newVertex = (v1 + v2) / 2;
-            float cost = calcContrCost(newVertex, qbar);
+            Vector3 newVertex = (v1 + v2) / 2.0f;
+            float cost = calcDeltaV(newVertex, qbar);
 
             float newCost;
-            if ((newCost = calcContrCost(v1, qbar)) < cost)
+            if ((newCost = calcDeltaV(v1, qbar)) < cost)
             {
                 cost = newCost;
                 newVertex = v1;
             }
 
-            if ((newCost = calcContrCost(v2, qbar)) < cost)
+            if ((newCost = calcDeltaV(v2, qbar)) < cost)
             {
                 cost = newCost;
                 newVertex = v2;
             }
+
+            // TODO: Store an entire vertex instead of the Vector3
+            // use v1 and v2 to come up with normals and textures
 
             return new VertexPair(v1s_index, v2s_index, cost, newVertex);
         }
@@ -442,10 +445,7 @@ namespace Subdivision_Project
                         // 4. Place all the pairs in a heap keyed on cost with the minimum
                         // cost pair at the top
 
-                        validPairs.Enqueue(simpleVBarCalc(i, j, q));
-
-                        // once there are enough pairs to contract break out of the loop
-                        if (validPairs.Count >= numOfCons) { j = numVertices; i = numVertices; }
+                        validPairs.Enqueue(vBarCalc(i, j, q));
                     }
                 }
             }
@@ -457,8 +457,10 @@ namespace Subdivision_Project
             // v_1.
             List<int> contractedTris = new List<int>();
 
-            while (validPairs.Count > 0)
+            while (validPairs.Count > 0 && numOfCons > 0)
             {
+                numOfCons--;
+
                 VertexPair removePair = validPairs.Dequeue();
                 vertices[removePair.v1].vert = removePair.newVertex;
 
@@ -477,14 +479,9 @@ namespace Subdivision_Project
                             triangles[currentTri.Value].v1 == removePair.v1 ||
                             triangles[currentTri.Value].v2 == removePair.v1)
                         {
-                            if (triangles[currentTri.Value].v0 == removePair.v2 ||
-                                triangles[currentTri.Value].v1 == removePair.v2 ||
-                                triangles[currentTri.Value].v2 == removePair.v2)
-                            {
-    //                          Console.Out.WriteLine("This triangle has a contracted edge!...");
-                                trisUsingVertex[removePair.v2].Remove(currentTri);
-                                contractedTris.Add(currentTri.Value);
-                            }
+//                          Console.Out.WriteLine("This triangle has a contracted edge!...");
+                            trisUsingVertex[removePair.v2].Remove(currentTri);
+                            contractedTris.Add(currentTri.Value);
                         }
                         else
                         {
@@ -520,15 +517,15 @@ namespace Subdivision_Project
 
                         if (updatePair.v1 == removePair.v2)
                         {
-                            updatePairs.Enqueue(simpleVBarCalc(removePair.v1, updatePair.v2, q));
+                            updatePairs.Enqueue(vBarCalc(removePair.v1, updatePair.v2, q));
                         }
                         else if (updatePair.v2 == removePair.v2)
                         {
-                            updatePairs.Enqueue(simpleVBarCalc(updatePair.v1, removePair.v1, q));
+                            updatePairs.Enqueue(vBarCalc(updatePair.v1, removePair.v1, q));
                         }
                         else if (updatePair.v1 == removePair.v1 || updatePair.v2 == removePair.v1)
                         {
-                            updatePairs.Enqueue(simpleVBarCalc(updatePair.v1, updatePair.v2, q));
+                            updatePairs.Enqueue(vBarCalc(updatePair.v1, updatePair.v2, q));
                         }
                         else
                         {
@@ -543,7 +540,6 @@ namespace Subdivision_Project
 
             List<Vertex> mVertices = vertices.ToList<Vertex>();
             Console.Out.WriteLine("The original mesh has " + vertices.Length + " vertices");
-            Console.Out.WriteLine("There are now " + mVertices.Count + " vertices");
 
             // TODO: Remove now unused vertices
             for (int i = trisUsingVertex.Length - 1; i > 0; i--)
@@ -567,16 +563,13 @@ namespace Subdivision_Project
 
             List<Triangle> mTriangles = triangles.ToList<Triangle>();
 
+            contractedTris.Sort();
+
             int[] contracted = contractedTris.ToArray();
 
             // Remove contracted triangles
-            for (int i = 0; i < contracted.Length; i++)
+            for (int i = contracted.Length - 1; i > 0; i--)
             {
-                for (int j = i+1; j < contracted.Length; j++)
-                {
-                    if (contracted[j] > contracted[i]) { contractedTris[j]--; }
-                }
-
                 mTriangles.RemoveAt(contracted[i]);
             }
 
