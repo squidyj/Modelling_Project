@@ -295,36 +295,34 @@ namespace Subdivision_Project
                 while (currentTri!=null)
                 {
                     Triangle target = triangles[currentTri.Value];
-                    if (target.v0 == i || target.v1 == i || target.v2 == i)
-                    {
-                        // Construct Kp, the matrix
-                        // [ a^2 ab  ac  ad
-                        //   ab  b^2 bc  bd
-                        //   ac  bc  c^2 cd
-                        //   ad  bd  cd  d^2 ]
 
-                        Matrix4 kp = new Matrix4();
-                        Plane plane = new Plane(
-                            theVertices[target.v0].vert,
-                            theVertices[target.v1].vert,
-                            theVertices[target.v2].vert);
+                    // Construct Kp, the matrix
+                    // [ a^2 ab  ac  ad
+                    //   ab  b^2 bc  bd
+                    //   ac  bc  c^2 cd
+                    //   ad  bd  cd  d^2 ]
 
-                        kp.Row0.X = plane.a * plane.a;
-                        kp.Row0.Y = kp.Row1.X = plane.a * plane.b;
-                        kp.Row0.Z = kp.Row2.X = plane.a * plane.c;
-                        kp.Row0.W = kp.Row3.X = plane.a * plane.d;
+                    Matrix4 kp = new Matrix4();
+                    Plane plane = new Plane(
+                        theVertices[target.v0].vert,
+                        theVertices[target.v1].vert,
+                        theVertices[target.v2].vert);
 
-                        kp.Row1.Y = plane.b * plane.b;
-                        kp.Row1.Z = kp.Row2.Y = plane.b * plane.c;
-                        kp.Row1.W = kp.Row3.Y = plane.b * plane.d;
+                    kp.Row0.X = plane.a * plane.a;
+                    kp.Row0.Y = kp.Row1.X = plane.a * plane.b;
+                    kp.Row0.Z = kp.Row2.X = plane.a * plane.c;
+                    kp.Row0.W = kp.Row3.X = plane.a * plane.d;
 
-                        kp.Row2.Z = plane.c * plane.c;
-                        kp.Row2.W = kp.Row3.Z = plane.c * plane.d;
+                    kp.Row1.Y = plane.b * plane.b;
+                    kp.Row1.Z = kp.Row2.Y = plane.b * plane.c;
+                    kp.Row1.W = kp.Row3.Y = plane.b * plane.d;
 
-                        kp.Row3.W = plane.d * plane.d;
+                    kp.Row2.Z = plane.c * plane.c;
+                    kp.Row2.W = kp.Row3.Z = plane.c * plane.d;
 
-                        qi = add(qi, kp);
-                    }
+                    kp.Row3.W = plane.d * plane.d;
+
+                    qi = add(qi, kp);
 
                     currentTri = currentTri.Next;
                 }
@@ -343,6 +341,13 @@ namespace Subdivision_Project
             {
                 if (triangles[currentTri.Value].v0 == v2 || triangles[currentTri.Value].v1 == v2 || triangles[currentTri.Value].v2 == v2)
                 {
+/*
+                    Console.Out.WriteLine("(" + v1 + ", " + v2 + ") is an edge in triangle " + currentTri.Value);
+                    Console.Out.WriteLine("Triangle " + currentTri.Value + " has vertices");
+                    Console.Out.WriteLine("v0: " + triangles[currentTri.Value].v0);
+                    Console.Out.WriteLine("v1: " + triangles[currentTri.Value].v1);
+                    Console.Out.WriteLine("v2: " + triangles[currentTri.Value].v2);
+*/
                     return true;
                 }
 
@@ -351,7 +356,7 @@ namespace Subdivision_Project
             return false;
         }
 
-        private float calcCost(Vector3 v, Matrix4 q)
+        private float calcContrCost(Vector3 v, Matrix4 q)
         {
             //delta(v) = v^TQv
 
@@ -376,16 +381,16 @@ namespace Subdivision_Project
 
             // depending on which one of these produces the lowest value of delta (v bar)
             Vector3 newVertex = (v1 + v2) / 2;
-            float cost = calcCost(newVertex, qbar);
+            float cost = calcContrCost(newVertex, qbar);
 
             float newCost;
-            if ((newCost = calcCost(v1, qbar)) < cost)
+            if ((newCost = calcContrCost(v1, qbar)) < cost)
             {
                 cost = newCost;
                 newVertex = v1;
             }
 
-            if ((newCost = calcCost(v2, qbar)) < cost)
+            if ((newCost = calcContrCost(v2, qbar)) < cost)
             {
                 cost = newCost;
                 newVertex = v2;
@@ -395,7 +400,7 @@ namespace Subdivision_Project
         }
 
         // TODO: Complete this
-        public void simplify(int steps, float threshold)
+        public void simplify(float threshold)
         {
             // Surface Simplification Using Quadric Error Metrics (Garland)
 
@@ -429,113 +434,134 @@ namespace Subdivision_Project
 
             for (int i = 0; i < numVertices; i++)
             {
-                for (int j = 0; j < numVertices; j++)
+                for (int j = i+1; j < numVertices; j++)
                 {
-                    if (i != j)
+                    // For every two unique vertices, if they make up an edge or are within the
+                    // specified threshold, they are a valid pair.
+                    Vector3 v1 = vertices[i].vert;
+                    Vector3 v2 = vertices[j].vert;
+                    if (isEdge(i, j, trisUsingVertex) || (v1 - v2).Length < threshold)
                     {
-                        // For every two unique vertices, if they make up an edge or are within the
-                        // specified threshold, they are a valid pair.
-                        Vector3 v1 = vertices[i].vert;
-                        Vector3 v2 = vertices[j].vert;
-                        if (isEdge(i, j, trisUsingVertex) || (v1 - v2).Length < threshold)
-                        {
-                            // 3. Compute the optimal contraction target v bar for each valid pair
-                            // (v_1, v_2). The error v bar^T (Q_1 + Q_2)v bar of this target vertex becomes
-                            // the cost of contracting that pair.
+                        // 3. Compute the optimal contraction target v bar for each valid pair
+                        // (v_1, v_2). The error v bar^T (Q_1 + Q_2)v bar of this target vertex becomes
+                        // the cost of contracting that pair.
 
-                            // 4. Place all the pairs in a heap keyed on cost with the minimum
-                            // cost pair at the top
+                        // 4. Place all the pairs in a heap keyed on cost with the minimum
+                        // cost pair at the top
 
-                            validPairs.Enqueue(simpleVBarCalc(i, j, q));
-                        }
+                        validPairs.Enqueue(simpleVBarCalc(i, j, q));
                     }
                 }
             }
             Console.Out.WriteLine("Valid pair selection completed!");
 
-            Console.Out.WriteLine("Now removing " + validPairs.Count + " pairs...");
+            Console.Out.WriteLine("Now contracting " + validPairs.Count + " pairs...");
             // 5. Iteratively remove the pair (v_1, v_2) of least cost from the heap,
             // contract this pair, and update the costs of all valid pairs involving
             // v_1.
+            List<int> contractedTris = new List<int>();
+
             while (validPairs.Count > 0)
             {
                 VertexPair removePair = validPairs.Dequeue();
-
-                Console.Out.WriteLine("Contracting pair: (" + removePair.v1 + ", " + removePair.v2 + ")");
-                Console.Out.WriteLine(removePair.v1 + ": " + vertices[removePair.v1].vert.X + ", "
-                    + vertices[removePair.v1].vert.Y + ", " + vertices[removePair.v1].vert.Z);
-                Console.Out.WriteLine(removePair.v2 + ": " + vertices[removePair.v2].vert.X + ", "
-                    + vertices[removePair.v2].vert.Y + ", " + vertices[removePair.v2].vert.Z);
-
                 vertices[removePair.v1].vert = removePair.newVertex;
 
-                Console.Out.WriteLine("New vertex: " + removePair.v1);
-                Console.Out.WriteLine(removePair.v1 + ": " + vertices[removePair.v1].vert.X + ", "
-                    + vertices[removePair.v1].vert.Y + ", " + vertices[removePair.v1].vert.Z);
+                // TODO: Re-calculate vertex normal?
 
                 // Contract pairs
-                LinkedListNode<int> currentTri = trisUsingVertex[removePair.v2].First;
-
-                while (currentTri != null)
+                if (trisUsingVertex[removePair.v2] != null && trisUsingVertex[removePair.v1] != null)
                 {
-                    if (triangles[currentTri.Value].v0 == removePair.v2)
+                    LinkedListNode<int> currentTri = trisUsingVertex[removePair.v2].First;
+
+                    while (currentTri != null)
                     {
-                        triangles[currentTri.Value].v0 = removePair.v1;
+    //                    Console.Out.WriteLine("Vertex " + removePair.v1 + " is connected to " + trisUsingVertex[removePair.v1].Count + " triangles");
+
+                        if (triangles[currentTri.Value].v0 == removePair.v1 ||
+                            triangles[currentTri.Value].v1 == removePair.v1 ||
+                            triangles[currentTri.Value].v2 == removePair.v1)
+                        {
+                            if (triangles[currentTri.Value].v0 == removePair.v2 ||
+                                triangles[currentTri.Value].v1 == removePair.v2 ||
+                                triangles[currentTri.Value].v2 == removePair.v2)
+                            {
+    //                          Console.Out.WriteLine("This triangle has a contracted edge!...");
+                                trisUsingVertex[removePair.v2].Remove(currentTri);
+                                contractedTris.Add(currentTri.Value);
+                            }
+                        }
+                        else
+                        {
+                            // All the triangles that were connected to v2 are now connected to v1
+                            trisUsingVertex[removePair.v1].AddLast(currentTri.Value);
+
+                            if (triangles[currentTri.Value].v0 == removePair.v2)
+                            {
+                                triangles[currentTri.Value].v0 = removePair.v1;
+                            }
+                            else if (triangles[currentTri.Value].v1 == removePair.v2)
+                            {
+                                triangles[currentTri.Value].v1 = removePair.v1;
+                            }
+                            else if (triangles[currentTri.Value].v2 == removePair.v2)
+                            {
+                                triangles[currentTri.Value].v2 = removePair.v1;
+                            }
+                        }
+
+                        currentTri = currentTri.Next;
                     }
-                    else if (triangles[currentTri.Value].v1 == removePair.v2)
+
+                    // Mark unused vertex
+                    trisUsingVertex[removePair.v2] = null;
+
+                    // Update costs
+                    VCSKicksCollection.PriorityQueue<VertexPair> updatePairs = new VCSKicksCollection.PriorityQueue<VertexPair>();
+
+                    while (validPairs.Count > 0)
                     {
-                        triangles[currentTri.Value].v1 = removePair.v1;
+                        VertexPair updatePair = validPairs.Dequeue();
+
+                        if (updatePair.v1 == removePair.v2)
+                        {
+                            updatePairs.Enqueue(simpleVBarCalc(removePair.v1, updatePair.v2, q));
+                        }
+                        else if (updatePair.v2 == removePair.v2)
+                        {
+                            updatePairs.Enqueue(simpleVBarCalc(updatePair.v1, removePair.v1, q));
+                        }
+                        else if (updatePair.v1 == removePair.v1 || updatePair.v2 == removePair.v1)
+                        {
+                            updatePairs.Enqueue(simpleVBarCalc(updatePair.v1, updatePair.v2, q));
+                        }
+                        else
+                        {
+                            updatePairs.Enqueue(updatePair);
+                        }
                     }
-                    else if (triangles[currentTri.Value].v2 == removePair.v2)
-                    {
-                        triangles[currentTri.Value].v2 = removePair.v1;
-                    }
-                    currentTri = currentTri.Next;
+
+                    validPairs = updatePairs;
                 }
-
-                // Mark unused vertex
-                trisUsingVertex[removePair.v2] = null;                
-
-                // Update costs
-                VCSKicksCollection.PriorityQueue<VertexPair> updatePairs = new VCSKicksCollection.PriorityQueue<VertexPair>();
-
-                for (int i = 0; i < validPairs.Count; i++)
-                {
-                    VertexPair updatePair = validPairs.Dequeue();
-
-                    if (updatePair.v1 == removePair.v1 || updatePair.v2 == removePair.v1)
-                    {
-                        updatePairs.Enqueue(simpleVBarCalc(updatePair.v1, updatePair.v2, q));
-                    }
-                    else if (updatePair.v1 == removePair.v2)
-                    {
-                        updatePairs.Enqueue(simpleVBarCalc(removePair.v1, updatePair.v2, q));
-                    }
-                    else if (updatePair.v2 == removePair.v2)
-                    {
-                        updatePairs.Enqueue(simpleVBarCalc(updatePair.v1, removePair.v1, q));
-                    }
-                    else
-                    {
-                        updatePairs.Enqueue(updatePair);
-                    }
-                }
-
-                validPairs = updatePairs;
             }
 
-            int newNumVertices = vertices.Length;
+/*
+            List<Vertex> mVertices = vertices.ToList<Vertex>();
+            Console.Out.WriteLine("The original mesh has " + vertices.Length + " vertices");
+            Console.Out.WriteLine("There are now " + mVertices.Count + " vertices");
 
             // TODO: Remove now unused vertices
             for (int i = 0; i < trisUsingVertex.Length; i++)
             {
                 if (trisUsingVertex[i] == null)
                 {
-                    newNumVertices--;
+                    Console.Out.WriteLine("There are now " + mVertices.Count + " vertices");
+                    mVertices.RemoveAt(i);
 
-                    for (int j = i; j < newNumVertices; j++)
+                    Console.Out.WriteLine("There are now " + mVertices.Count + " vertices");
+
+                    for (int j = i; j < mVertices.Count - 1; j++)
                     {
-                        vertices[j] = vertices[j + 1];
+                        mVertices[j] = mVertices[j + 1];
                     }
 
                     for (int j = 0; j < triangles.Length; j++)
@@ -547,17 +573,29 @@ namespace Subdivision_Project
                 }
             }
 
-            Vertex[] newVertices = new Vertex[newNumVertices];
+            Console.Out.WriteLine("Number of vertices " + vertices.Length + " reduced to " + mVertices.Count);
 
-            for (int i = 0; i < newNumVertices; i++ )
+            vertices = mVertices.ToArray();
+
+            List<Triangle> mTriangles = triangles.ToList<Triangle>();
+
+            int[] contracted = contractedTris.ToArray();
+
+            // Remove contracted triangles
+            for (int i = 0; i < contracted.Length; i++)
             {
-                newVertices[i] = vertices[i];
+                for (int j = i+1; j < contracted.Length; j++)
+                {
+                    if (contracted[j] > contracted[i]) { contractedTris[j]--; }
+                }
+
+                mTriangles.RemoveAt(contracted[i]);
             }
 
-            Console.Out.WriteLine("Number of vertices " + vertices.Length + " reduced to " + newNumVertices);
+            Console.Out.WriteLine("Number of triangles " + triangles.Length + " reduced to " + mTriangles.Count);
 
-            vertices = newVertices;
-
+            triangles = mTriangles.ToArray();
+*/
             Console.Out.WriteLine("Pairs removed!");
 
             load();
@@ -588,7 +626,6 @@ namespace Subdivision_Project
 				vertices[i].normal = Vector3.Normalize(vertices[i].normal);
 			}
 		}
-
 
 		//naive calculation of a bounding box for the model
 		private void calculate()

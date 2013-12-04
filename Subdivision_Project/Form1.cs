@@ -288,7 +288,7 @@ namespace Subdivision_Project
 
         private void button2_Click(object sender, EventArgs e)
         {
-            activeModel.simplify(1, 0.0005f);
+            activeModel.simplify(0.0f);
             glControl1.Invalidate();
         }
 
