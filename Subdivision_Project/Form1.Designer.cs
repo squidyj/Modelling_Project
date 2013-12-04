@@ -34,12 +34,15 @@
             this.loadModelToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.numEdgePicker = new System.Windows.Forms.NumericUpDown();
+            this.label2 = new System.Windows.Forms.Label();
+            this.button2 = new System.Windows.Forms.Button();
             this.comboBox1 = new System.Windows.Forms.ComboBox();
             this.label1 = new System.Windows.Forms.Label();
             this.button1 = new System.Windows.Forms.Button();
-            this.button2 = new System.Windows.Forms.Button();
             this.menuStrip1.SuspendLayout();
             this.panel1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numEdgePicker)).BeginInit();
             this.SuspendLayout();
             // 
             // glControl1
@@ -93,6 +96,8 @@
             // 
             // panel1
             // 
+            this.panel1.Controls.Add(this.numEdgePicker);
+            this.panel1.Controls.Add(this.label2);
             this.panel1.Controls.Add(this.button2);
             this.panel1.Controls.Add(this.comboBox1);
             this.panel1.Controls.Add(this.label1);
@@ -102,6 +107,42 @@
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(171, 393);
             this.panel1.TabIndex = 2;
+            // 
+            // numEdgePicker
+            // 
+            this.numEdgePicker.Location = new System.Drawing.Point(17, 197);
+            this.numEdgePicker.Maximum = new decimal(new int[] {
+            10000,
+            0,
+            0,
+            0});
+            this.numEdgePicker.Name = "numEdgePicker";
+            this.numEdgePicker.Size = new System.Drawing.Size(120, 20);
+            this.numEdgePicker.TabIndex = 6;
+            this.numEdgePicker.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(17, 180);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(142, 13);
+            this.label2.TabIndex = 5;
+            this.label2.Text = "Number of edges to contract";
+            // 
+            // button2
+            // 
+            this.button2.Location = new System.Drawing.Point(17, 150);
+            this.button2.Name = "button2";
+            this.button2.Size = new System.Drawing.Size(75, 23);
+            this.button2.TabIndex = 4;
+            this.button2.Text = "Simplify";
+            this.button2.UseVisualStyleBackColor = true;
+            this.button2.Click += new System.EventHandler(this.button2_Click);
             // 
             // comboBox1
             // 
@@ -135,16 +176,6 @@
             this.button1.UseVisualStyleBackColor = true;
             this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
-            // button2
-            // 
-            this.button2.Location = new System.Drawing.Point(17, 150);
-            this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(75, 23);
-            this.button2.TabIndex = 4;
-            this.button2.Text = "Simplify";
-            this.button2.UseVisualStyleBackColor = true;
-            this.button2.Click += new System.EventHandler(this.button2_Click);
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -161,6 +192,7 @@
             this.menuStrip1.PerformLayout();
             this.panel1.ResumeLayout(false);
             this.panel1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numEdgePicker)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -178,6 +210,8 @@
 		private System.Windows.Forms.Label label1;
 		private System.Windows.Forms.ComboBox comboBox1;
 		private System.Windows.Forms.Button button2;
+        private System.Windows.Forms.NumericUpDown numEdgePicker;
+        private System.Windows.Forms.Label label2;
 	}
 }
 

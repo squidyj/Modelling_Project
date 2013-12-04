@@ -288,9 +288,8 @@ namespace Subdivision_Project
 
         private void button2_Click(object sender, EventArgs e)
         {
-            activeModel.simplify(0.0f);
+            activeModel.simplify((int) numEdgePicker.Value, 0.0f);
             glControl1.Invalidate();
         }
-
 	}
 }

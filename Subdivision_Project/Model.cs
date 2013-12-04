@@ -341,13 +341,6 @@ namespace Subdivision_Project
             {
                 if (triangles[currentTri.Value].v0 == v2 || triangles[currentTri.Value].v1 == v2 || triangles[currentTri.Value].v2 == v2)
                 {
-/*
-                    Console.Out.WriteLine("(" + v1 + ", " + v2 + ") is an edge in triangle " + currentTri.Value);
-                    Console.Out.WriteLine("Triangle " + currentTri.Value + " has vertices");
-                    Console.Out.WriteLine("v0: " + triangles[currentTri.Value].v0);
-                    Console.Out.WriteLine("v1: " + triangles[currentTri.Value].v1);
-                    Console.Out.WriteLine("v2: " + triangles[currentTri.Value].v2);
-*/
                     return true;
                 }
 
@@ -400,7 +393,7 @@ namespace Subdivision_Project
         }
 
         // TODO: Complete this
-        public void simplify(float threshold)
+        public void simplify(int numOfCons, float threshold)
         {
             // Surface Simplification Using Quadric Error Metrics (Garland)
 
@@ -450,6 +443,9 @@ namespace Subdivision_Project
                         // cost pair at the top
 
                         validPairs.Enqueue(simpleVBarCalc(i, j, q));
+
+                        // once there are enough pairs to contract break out of the loop
+                        if (validPairs.Count >= numOfCons) { j = numVertices; i = numVertices; }
                     }
                 }
             }
@@ -544,25 +540,17 @@ namespace Subdivision_Project
                 }
             }
 
-/*
+
             List<Vertex> mVertices = vertices.ToList<Vertex>();
             Console.Out.WriteLine("The original mesh has " + vertices.Length + " vertices");
             Console.Out.WriteLine("There are now " + mVertices.Count + " vertices");
 
             // TODO: Remove now unused vertices
-            for (int i = 0; i < trisUsingVertex.Length; i++)
+            for (int i = trisUsingVertex.Length - 1; i > 0; i--)
             {
                 if (trisUsingVertex[i] == null)
                 {
-                    Console.Out.WriteLine("There are now " + mVertices.Count + " vertices");
                     mVertices.RemoveAt(i);
-
-                    Console.Out.WriteLine("There are now " + mVertices.Count + " vertices");
-
-                    for (int j = i; j < mVertices.Count - 1; j++)
-                    {
-                        mVertices[j] = mVertices[j + 1];
-                    }
 
                     for (int j = 0; j < triangles.Length; j++)
                     {
@@ -595,7 +583,7 @@ namespace Subdivision_Project
             Console.Out.WriteLine("Number of triangles " + triangles.Length + " reduced to " + mTriangles.Count);
 
             triangles = mTriangles.ToArray();
-*/
+
             Console.Out.WriteLine("Pairs removed!");
 
             load();
