@@ -286,11 +286,20 @@ namespace Subdivision_Project
 			glControl1.Invalidate();
 		}
 
+<<<<<<< HEAD
         private void button2_Click(object sender, EventArgs e)
         {
             activeModel.simplify(1, 0.0005f);
             glControl1.Invalidate();
         }
+=======
+		private void button2_Click(object sender, EventArgs e)
+		{
+			Console.Out.WriteLine(track);
+			Console.Out.WriteLine(" ");
+			Console.Out.WriteLine(view);
+		}
+>>>>>>> Fixed Trackball and Subdivision Boundary
 
 	}
 }

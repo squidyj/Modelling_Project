@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
 using System.Runtime.InteropServices;
-
+using System.Diagnostics;
 namespace Subdivision_Project
 {
 	public class Model
@@ -36,7 +36,6 @@ namespace Subdivision_Project
 		Vector3 max;
 		float scale;
 
-		int[][] neighbours;
 		//index array
 		Triangle[] triangles;
 		public Triangle[] Triangles
@@ -45,8 +44,10 @@ namespace Subdivision_Project
 			set { triangles = value; }
 		}
 
-		HashSet<int>[] vFaces;
-	
+		HashSet<int>[] aVertices;
+		HashSet<int>[] aFaces;
+		HashSet<int> boundary;
+			
 		//vertex values, texture uv, and vertex normal
 		Vertex[] vertices;
 		public Vertex[] Vertices
@@ -92,52 +93,107 @@ namespace Subdivision_Project
 			load();
 		}
 
-		//make sure all the vertices know what they are adjacent to
+		private void addAdjacent(int v, int v1, int v2, int f)
+		{
+			//for a given vertex v, encode that it is adjacent to the face f
+			aFaces[v].Add(f);
+			//and vertices v1 and v2;
+			aVertices[v].Add(v1);
+			aVertices[v].Add(v2);
+		}
+
+		private void addBoundary(int v1, int v2, int f)
+		{
+			//find all of the faces that are adjacent to the [v1,v2] edge
+			HashSet<int> bound = new HashSet<int>(aFaces[v1].Intersect(aFaces[v2]));
+			//if there is more than 1 such face then the edge cannot be on a boundary
+			if(bound.Count > 1)
+				return;
+			//otherwise the edge is a boundary and both vertices are boundary vertices
+			boundary.Add(v1);
+			boundary.Add(v2);
+		}
+
+		private void cleanMesh()
+		{
+			HashSet<int[]> faces = new HashSet<int[]>();
+			int k;
+			int[] v = new int[3];
+			List<int> removal = new List<int>();
+			Triangle t;
+			for(int i = 0; i < triangles.Length; i++)
+			{
+				t = triangles[i];
+				v[0] = t.v0; v[1] = t.v1; v[2] = t.v2;
+				if (v[0] > v[1])
+				{ k = v[0]; v[0] = v[1]; v[1] = k; }
+				if (v[1] > v[2])
+				{ k = v[1]; v[1] = v[2]; v[2] = k; }
+				if (v[0] > v[1])
+				{ k = v[0]; v[0] = v[1]; v[1] = k; }
+				if (faces.Contains(v))
+					removal.Add(i);
+				else
+					faces.Add(v);
+			}
+
+			var tris = triangles.ToList();
+			foreach (int n in removal)
+				tris.RemoveAt(n);
+			triangles = tris.ToArray();
+		}
+
 		private void makeAdjacency()
 		{
 
-			vFaces = new HashSet<int>[vertices.Length];
-			for (int i = 0; i < vFaces.Length; i++)
-				vFaces[i] = new HashSet<int>();
+			//initialize adjacency structures
+			boundary = new HashSet<int>();
+			aVertices = new HashSet<int>[vertices.Length];
+			aFaces = new HashSet<int>[vertices.Length];
 
-			foreach (Triangle t in triangles)
+			for (int i = 0; i < aVertices.Length; i++)
 			{
-				vFaces[t.v0].Add(t.v1);
-				vFaces[t.v0].Add(t.v2);
-
-				vFaces[t.v1].Add(t.v2);
-				vFaces[t.v1].Add(t.v0);
-
-				vFaces[t.v2].Add(t.v1);
-				vFaces[t.v2].Add(t.v0);
+				aVertices[i] = new HashSet<int>();
+				aFaces[i] = new HashSet<int>();
 			}
-			int c = 0;
-			foreach (HashSet<int> hs in vFaces)
+			
+			Triangle t;
+			for(int i = 0; i < triangles.Length; i++)
 			{
-				if (hs.Count == 2)
-				{
-					c++;
-				}
+				t = triangles[i];
+				addAdjacent(t.v0, t.v1, t.v2, i);
+				addAdjacent(t.v1, t.v2, t.v0, i);
+				addAdjacent(t.v2, t.v0, t.v1, i);
 			}
-			Console.Out.WriteLine(c);
+			for(int i = 0; i < triangles.Length; i++)
+			{
+				t = triangles[i];
+				addBoundary(t.v0, t.v1, i);
+				addBoundary(t.v1, t.v2, i);
+				addBoundary(t.v2, t.v0, i);
+			}
 		}
 
 		//return the index of the current vertex
 		private int edgeVertex(int v0, int v1, int o1, List<Vertex> verts, Dictionary<Vertex, int> lookup)
 		{
-			//find the other remaining vertex 
-			HashSet<int> hs = new HashSet<int>(vFaces[v0].Intersect(vFaces[v1]));
-			hs.Remove(o1);
-			if (hs.Count == 2)
-				Console.Out.WriteLine("correct");
-			int o2 = -1;
-			if (hs.Count > 0)
-				o2 = hs.Last();
+			//we are given two adjacent vertices and an opposite vertex, we need to find the final opposite vertex if it exists
 			Vertex v;
-			if(o2 != -1)
-				v = 0.375f * (verts[v0] + verts[v1]) + 0.125f * (verts[o1] + verts[o2]);
-			else
+			//the edge vertex is boundary if and only if its adjacent vertices are boundary
+			if (boundary.Contains(v0) && boundary.Contains(v1))
 				v = 0.5f * (verts[v0] + verts[v1]);
+			else
+			{
+				//otherwise there is a second opposite vertex
+				//find all of the vertices that are adjacent to both ends of the edge
+				HashSet<int> hs = new HashSet<int>(aVertices[v0].Intersect(aVertices[v1]));
+				//remove from that set the already gathered opposite
+				hs.Remove(o1);
+				if (hs.Count == 0)
+					Console.Out.WriteLine(v0 + ", " + v1);
+				int o2 = hs.Last();
+				v = 0.375f * (verts[v0] + verts[v1]) + 0.125f * (verts[o1] + verts[o2]);
+			}
 			int n;
 			if(lookup.TryGetValue(v, out n))
 				return n;
@@ -146,7 +202,6 @@ namespace Subdivision_Project
 			lookup.Add(v, n);
 			return n;
 		}
-
 
 		public void subdivide()
 		{
@@ -158,7 +213,7 @@ namespace Subdivision_Project
 			int v0, v1, v2;
 
 			//begin by updating adjacency data for all vertices
-			//ideally this would be maintained with each modifica
+			//ideally this would be maintained with each modification to the mesh
 			makeAdjacency();
 			//for each face in the mesh
 			int m = triangles.Length;
@@ -166,35 +221,45 @@ namespace Subdivision_Project
 			for (int i = 0; i < m; i++)
 			{
 				t = triangles[i];
+
 				//construct a vertex on each edge
 				v0 = edgeVertex(t.v0, t.v1, t.v2, mVerts, lookup);
 				v1 = edgeVertex(t.v1, t.v2, t.v0, mVerts, lookup);
 				v2 = edgeVertex(t.v2, t.v0, t.v1, mVerts, lookup);
 
 				//construct the 4 new faces maintaining the original winding
-				
 				mTriangles.Add(new Triangle(t.v0, v0, v2));
 				mTriangles.Add(new Triangle(v0, t.v1, v1));
 				mTriangles.Add(new Triangle(v0, v1, v2));
 				mTriangles.Add(new Triangle(v2, v1, t.v2));
-		
-				//Console.Out.WriteLine(i);
 			}
 
-			Vertex v, vi;
+			Vertex v, vx;
 			float a;
 			int n;
-			
+			int[] adj;
+			HashSet<int> bound;
 			for (int i = 0; i < off; i++)
 			{
 
-				n = vFaces[i].Count;
-				a = 1 / (float)n * (float)(0.625f - Math.Pow((0.375f + 0.25f * Math.Cos(2 * Math.PI / n)), 2));
-				vi = (1 - n * a) * mVerts[i];
-				v = new Vertex();
-				foreach (int j in vFaces[i])
-					v += mVerts[j];
-				v = vi + a * v;
+				if (boundary.Contains(i))
+				{
+					//find the vertices that are adjacent to the target vertex AND boundary vertices
+					bound = new HashSet<int>(aVertices[i].Intersect(boundary));
+					//there should only be 2 such vertices, if something wickity wack is going on, better handle it
+					adj = bound.ToArray();
+					v = 0.125f * (vertices[adj[0]] + vertices[adj[1]]) + 0.75f * vertices[i];
+				}
+				else
+				{
+					n = aVertices[i].Count;
+					a = 1 / (float)n * (float)(0.625f - Math.Pow((0.375f + 0.25f * Math.Cos(2 * Math.PI / n)), 2));
+					vx = (1 - n * a) * mVerts[i];
+					v = new Vertex();
+					foreach (int j in aVertices[i])
+						v += mVerts[j];
+					v = vx + a * v;
+				}
 				mVerts[i] = v;
 			}
 			 
