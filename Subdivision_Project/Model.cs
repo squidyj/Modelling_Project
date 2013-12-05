@@ -277,7 +277,6 @@ namespace Subdivision_Project
                 m.M41+n.M41, m.M42+n.M42, m.M43+n.M43, m.M44+n.M44);
         }
 
-        // TODO: Check with Bruce if this is correct
         private bool isEdge(int v1, int v2)
         {
             if (aVertices[v1].Contains(v2)) { return true; }
@@ -294,7 +293,6 @@ namespace Subdivision_Project
             {
                 Matrix4 qi = new Matrix4();
 
-                // TODO: Check with Bruce if this is correct
                 foreach (int tri in aFaces[i])
                 {
                     Triangle target = triangles[tri];
@@ -348,18 +346,16 @@ namespace Subdivision_Project
             return vx * v.X + vy * v.Y + vz * v.Z + vw * 1.0f;
         }
 
-        // TODO: Improve new vertex selection
         private VertexPair vBarCalc(int v1s_index, int v2s_index, Matrix4[] q)
         {
             Matrix4 qbar = add(q[v1s_index], q[v2s_index]);
 
-            // Simple scheme: select either v1, v2, or (v1+v2)/2 
             Vertex v1 = vertices[v1s_index];
             Vertex v2 = vertices[v2s_index];
 
             // depending on which one of these produces the lowest value of delta (v bar)
 
-            // TODO: Fix the normals and textures
+            // TODO: Check if the normals and textures for the inverse calculated vbar are correct
 
             Matrix4 inverse = qbar;
             inverse.Row3 = new Vector4(0, 0, 0, 1);
@@ -370,13 +366,14 @@ namespace Subdivision_Project
 
             if (Matrix4.Mult(qbar, inverse).Equals(Matrix4.Identity))
             {
-                vBar = new Vertex(new Vector3(inverse.Row3.X, inverse.Row3.Y, inverse.Row3.Z),
-                    v1.normal, v1.texcoord);
+                Vector3 newPoint = new Vector3(inverse.Row3.X, inverse.Row3.Y, inverse.Row3.Z);
+                float weight = ((newPoint - v1.vert).Length) / ((v2.vert - v1.vert).Length);
+                vBar = new Vertex(newPoint, v1.normal*weight+v2.normal*(1-weight), v1.texcoord*weight+v2.texcoord*(1-weight));
                 cost = calcDeltaV(vBar.vert, qbar);
             }
             else
             {
-                vBar = new Vertex(((v1.vert + v2.vert) / 2.0f), v1.normal, v1.texcoord);
+                vBar = new Vertex(((v1.vert + v2.vert) / 2.0f), (v1.normal+v2.normal)/2.0f, (v1.texcoord+v2.texcoord)/2.0f);
                 cost = calcDeltaV(vBar.vert, qbar);
 
                 float newCost;
@@ -461,8 +458,8 @@ namespace Subdivision_Project
                 }
                 Console.Out.WriteLine("Valid pairs selected!");
 
-                List<int> removedVerts = new List<int>();
-                List<int> removedTris = new List<int>();
+                HashSet<int> removedVerts = new HashSet<int>();
+                HashSet<int> removedTris = new HashSet<int>();
 
                 // 5. Iteratively remove the pair (v_1, v_2) of least cost from heap, contract this pair,
                 // and update the costs of all valid pairs involving v_1.
@@ -479,7 +476,6 @@ namespace Subdivision_Project
                     // Replace v_1 with the new vertex, vbar
                     mVerts[removePair.v1] = removePair.newVertex;
 
-                    // TODO: Check with Bruce to see if this is correct
                     foreach (int tri in aFaces[removePair.v2])
                     {
                         // If the triangle hasn't been removed yet...
@@ -489,65 +485,65 @@ namespace Subdivision_Project
                             int v1 = mTriangles[tri].v1;
                             int v2 = mTriangles[tri].v2;
 
-                            // If any triangle has both vertices in the pair...
-                            if (v0 == removePair.v1 ||
-                                v1 == removePair.v1 ||
-                                v2 == removePair.v1)
+                            // THIS CONDITION IS REALLY IMPORTANT. IT MAKES IT SO YOU DON'T MAKE HOLES.
+                            // I DON'T KNOW WHY THIS ISN'T ALWAYS THE CASE, BUT W/E.
+                            if (v0 == removePair.v2 ||
+                                v1 == removePair.v2 ||
+                                v2 == removePair.v2)
                             {
-                                // TODO: Do something about that
+                                // If any triangle has both vertices in the pair...
+                                if (v0 == removePair.v1 ||
+                                    v1 == removePair.v1 ||
+                                    v2 == removePair.v1)
+                                {
+                                    // TODO: Do something about that
 
-                                // This triangle is no longer used. It's not adjacent to anything.
-                                // So disconnect the other points from the triangle
-                                if (v0 == removePair.v2)
-                                {
-                                    aFaces[v1].Remove(tri);
-                                    aFaces[v2].Remove(tri);
+                                    // This triangle is no longer used. It's not adjacent to anything.
+                                    // So disconnect the other points from the triangle
+                                    if (v0 == removePair.v2)
+                                    {
+                                        aFaces[v1].Remove(tri);
+                                        aFaces[v2].Remove(tri);
+                                    }
+                                    else if (v1 == removePair.v2)
+                                    {
+                                        aFaces[v0].Remove(tri);
+                                        aFaces[v2].Remove(tri);
+                                    }
+                                    else
+                                    {
+                                        aFaces[v0].Remove(tri);
+                                        aFaces[v1].Remove(tri);
+                                    }
+
+                                    // Remember to remove this triangle
+                                    removedTris.Add(tri);
                                 }
-                                else if (v1 == removePair.v2)
-                                {
-                                    aFaces[v0].Remove(tri);
-                                    aFaces[v2].Remove(tri);
-                                }
+                                // Else replace v_2 with v_1
                                 else
                                 {
-                                    aFaces[v0].Remove(tri);
-                                    aFaces[v1].Remove(tri);
-                                }
+                                    // TODO: fix this mistake sometime
+                                    bool mistake = false;
 
-                                // Remember to remove this triangle
-                                removedTris.Add(tri);
-                            }
-                            // Else if any triangle has v_2, replace it with v_1
-                            else
-                            {
-                                // TODO: fix this mistake sometime
-                                bool mistake = false;
+                                    if (v0 == removePair.v2)
+                                    {
+                                        v0 = removePair.v1;
+                                        addAdjacent(v0, v1, v2, tri);
+                                    }
+                                    else if (v1 == removePair.v2)
+                                    {
+                                        v1 = removePair.v1;
+                                        addAdjacent(v1, v0, v2, tri);
+                                    }
+                                    else if (v2 == removePair.v2)
+                                    {
+                                        v2 = removePair.v1;
+                                        addAdjacent(v2, v0, v1, tri);
+                                    }
 
-                                if (v0 == removePair.v2)
-                                {
-                                    v0 = removePair.v1;
-                                    addAdjacent(v0, v1, v2, tri);
-                                }
-                                else if (v1 == removePair.v2)
-                                {
-                                    v1 = removePair.v1;
-                                    addAdjacent(v1, v0, v2, tri);
-                                }
-                                else if (v2 == removePair.v2)
-                                {
-                                    v2 = removePair.v1;
-                                    addAdjacent(v2, v0, v1, tri);
-                                }
-                                else
-                                {
-                                    // When will a triangle that doesn't have v be in aFaces[v] if i don't remove it?
-                                    mistake = true;
-                                }
-
-                                if (!mistake)
-                                {
                                     int k;
 
+                                    // cull faces
                                     if (v0 > v1)
                                     { k = v0; v0 = v1; v1 = k; }
                                     if (v1 > v2)
@@ -555,6 +551,7 @@ namespace Subdivision_Project
                                     if (v0 > v1)
                                     { k = v0; v0 = v1; v1 = k; }
 
+                                    // update triangle with new vertices
                                     mTriangles[tri] = new Triangle(v0, v1, v2);
                                 }
                             }
@@ -565,17 +562,62 @@ namespace Subdivision_Project
                 Console.Out.WriteLine("Pairs contracted!");
 
                 Console.Out.WriteLine("Now removing unused triangles and vertices...");
-                removedTris.Sort();
-                for (int i = removedTris.Count - 1; i > 0; i--)
+
+                while (removedTris.Count > 0)
                 {
-                    mTriangles.RemoveAt(removedTris[i]);
+                    int tri = removedTris.Max();
+                    removedTris.Remove(tri);
+                    mTriangles.RemoveAt(tri);
                 }
+
+                Triangle[] nTriangles = mTriangles.ToArray();
+
+/*              This is all wrong. Removing vertices is hard.
+ * 
+                while (removedVerts.Count > 0)
+                {
+                    int v = removedVerts.Max();
+                    removedVerts.Remove(v);
+                    mVerts.RemoveAt(v);
+
+                    // Update triangles
+                    for (int j = 0; j < nTriangles.Length; j++)
+                    {
+                        Triangle tri = mTriangles[j];
+                        int v0 = tri.v0;
+                        int v1 = tri.v1;
+                        int v2 = tri.v2;
+
+                        bool update = false;
+
+                        if (tri.v0 > v)
+                        {
+                            v0--;
+                            update = true;
+                        }
+                        if (tri.v1 > v)
+                        {
+                            v1--;
+                            update = true;
+                        }
+                        if (tri.v2 > v)
+                        {
+                            v2--;
+                            update = true;
+                        }
+                        if (update)
+                        {
+                            mTriangles[j] = new Triangle(v0, v1, v2);
+                        }
+                    }
+                }
+*/
                 Console.Out.WriteLine("Unused triangles and vertices removed!");
 
                 Console.Out.WriteLine("Surface simplification complete!");
                 Console.Out.WriteLine("The model was reduced from " + triangles.Length + " to " + mTriangles.Count + " triangles.");
 
-                triangles = mTriangles.ToArray();
+                triangles = nTriangles;
                 vertices = mVerts.ToArray();
                 load();
             }
