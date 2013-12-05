@@ -393,7 +393,7 @@ namespace Subdivision_Project
             return new VertexPair(v1s_index, v2s_index, cost, vBar);
         }
 
-        private HashSet<VertexPair> updateCosts(int updateV, HashSet<VertexPair> pairHeap, Matrix4[] q)
+        private SortedSet<VertexPair> updateCosts(int updateV, SortedSet<VertexPair> pairHeap, Matrix4[] q)
         {
             List<VertexPair> updateVertices = new List<VertexPair>();
 
@@ -424,21 +424,33 @@ namespace Subdivision_Project
             }
             else
             {
+                Stopwatch overallTime = new Stopwatch();
+                Stopwatch timer = new Stopwatch();
+
+                overallTime.Restart();
                 Console.Out.WriteLine("We will now attempt to reduce the model to " + targetTris + " triangles.");
 
                 List<Triangle> mTriangles = triangles.ToList();
                 List<Vertex> mVerts = vertices.ToList();
 
+                timer.Restart();
+                Console.Out.WriteLine("Making adjacencies...");
                 makeAdjacency();
+                timer.Stop();
+                Console.Out.WriteLine("Adjacencies made! Time taken: " + timer.ElapsedMilliseconds + "ms");
 
                 Console.Out.WriteLine("Now deriving error quadrics...");
+                
+                timer.Restart();
                 // 1. Compute the Q matrices for all the initial vertices.
                 Matrix4[] q = computeQ();
-                Console.Out.WriteLine("Error quadrics derived!");
+                timer.Stop();
+                Console.Out.WriteLine("Error quadrics derived! Time taken: " + timer.ElapsedMilliseconds + "ms");
 
+                timer.Restart();
                 Console.Out.WriteLine("Now selecting valid pairs...");
                 // 2. Select all valid pairs.
-                HashSet<VertexPair> validPairs = new HashSet<VertexPair>();
+                SortedSet<VertexPair> validPairs = new SortedSet<VertexPair>();
 
                 for (int i = 0; i < mVerts.Count; i++)
                 {
@@ -456,18 +468,20 @@ namespace Subdivision_Project
                         }
                     }
                 }
-                Console.Out.WriteLine("Valid pairs selected!");
+                timer.Stop();
+                Console.Out.WriteLine("Valid pairs selected! Time taken: " + timer.ElapsedMilliseconds + "ms");
 
-                HashSet<int> removedVerts = new HashSet<int>();
-                HashSet<int> removedTris = new HashSet<int>();
+                SortedSet<int> removedVerts = new SortedSet<int>();
+                SortedSet<int> removedTris = new SortedSet<int>();
 
                 // 5. Iteratively remove the pair (v_1, v_2) of least cost from heap, contract this pair,
                 // and update the costs of all valid pairs involving v_1.
 
+                timer.Restart();
                 Console.Out.WriteLine("Now contracting pairs...");
                 while (validPairs.Count != 0 && mTriangles.Count - removedTris.Count > targetTris)
                 {
-                    VertexPair removePair = validPairs.Min();
+                    VertexPair removePair = validPairs.First();
                     validPairs.Remove(removePair);
 
                     // Remember to remove this vertex
@@ -522,9 +536,6 @@ namespace Subdivision_Project
                                 // Else replace v_2 with v_1
                                 else
                                 {
-                                    // TODO: fix this mistake sometime
-                                    bool mistake = false;
-
                                     if (v0 == removePair.v2)
                                     {
                                         v0 = removePair.v1;
@@ -559,24 +570,25 @@ namespace Subdivision_Project
                     }
                     validPairs = updateCosts(removePair.v1, validPairs, q);
                 }
-                Console.Out.WriteLine("Pairs contracted!");
+                timer.Stop();
+                Console.Out.WriteLine("Pairs contracted! Time taken: " + timer.ElapsedMilliseconds + "ms");
 
+                timer.Restart();
                 Console.Out.WriteLine("Now removing unused triangles and vertices...");
 
                 while (removedTris.Count > 0)
                 {
-                    int tri = removedTris.Max();
+                    int tri = removedTris.Last();
                     removedTris.Remove(tri);
                     mTriangles.RemoveAt(tri);
                 }
 
                 Triangle[] nTriangles = mTriangles.ToArray();
-
-/*              This is all wrong. Removing vertices is hard.
- * 
+                /*
                 while (removedVerts.Count > 0)
                 {
-                    int v = removedVerts.Max();
+                    int v = removedVerts.Last();
+
                     removedVerts.Remove(v);
                     mVerts.RemoveAt(v);
 
@@ -611,12 +623,13 @@ namespace Subdivision_Project
                         }
                     }
                 }
-*/
-                Console.Out.WriteLine("Unused triangles and vertices removed!");
-
+                */
+                timer.Stop();
+                Console.Out.WriteLine("Unused triangles and vertices removed! Time taken: " + timer.ElapsedMilliseconds + "ms");
+                overallTime.Stop();
                 Console.Out.WriteLine("Surface simplification complete!");
-                Console.Out.WriteLine("The model was reduced from " + triangles.Length + " to " + mTriangles.Count + " triangles.");
-
+                Console.Out.WriteLine("The model was reduced from " + triangles.Length + " to " + mTriangles.Count + " triangles in " + overallTime.ElapsedMilliseconds + "ms");
+                
                 triangles = nTriangles;
                 vertices = mVerts.ToArray();
                 load();
