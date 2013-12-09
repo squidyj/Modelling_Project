@@ -2,11 +2,12 @@
 using System.IO;
 using System.Collections.Generic;
 using OpenTK;
+using Subdivision_Project.Primitives;
 namespace Subdivision_Project
 {
 	public class ObjLoader
 	{
-		public static bool Load(Model mesh, string fileName)
+		public static bool Load(Mesh mesh, string fileName)
 		{
 			try
 			{
@@ -26,18 +27,18 @@ namespace Subdivision_Project
 		static List<Vector3> vertices;
 		static List<Vector3> normals;
 		static List<Vector2> texCoords;
-		static Dictionary<Model.Vertex, int> vertexIndexMap;
-		static List<Model.Vertex> mVertices;
-		static List<Model.Triangle> mTriangles;
+		static Dictionary<Vertex, int> vertexIndexMap;
+		static List<Vertex> mVertices;
+		static List<Triangle> mTriangles;
 
-		static void Load(Model mesh, TextReader textReader)
+		static void Load(Mesh mesh, TextReader textReader)
 		{
 			vertices = new List<Vector3>();
 			normals = new List<Vector3>();
 			texCoords = new List<Vector2>();
-			vertexIndexMap = new Dictionary<Model.Vertex, int>();
-			mVertices = new List<Model.Vertex>();
-			mTriangles = new List<Model.Triangle>();
+			vertexIndexMap = new Dictionary<Vertex, int>();
+			mVertices = new List<Vertex>();
+			mTriangles = new List<Triangle>();
 
 			string line;
 			while ((line = textReader.ReadLine()) != null)
@@ -76,7 +77,7 @@ namespace Subdivision_Project
 						switch (parameters.Length)
 						{
 							case 4:
-								Model.Triangle objTriangle = new Model.Triangle();
+								Triangle objTriangle = new Triangle();
 								objTriangle.v0 = ParseFaceParameter(parameters[1]);
 								objTriangle.v1 = ParseFaceParameter(parameters[2]);
 								objTriangle.v2 = ParseFaceParameter(parameters[3]);
@@ -140,11 +141,11 @@ namespace Subdivision_Project
 
 
 		//naive triangulation assumes convex and winding property
-		static List<Model.Triangle> triangulate(string[] parameters)
+		static List<Triangle> triangulate(string[] parameters)
 		{
-			List<Model.Triangle> ts = new List<Model.Triangle>();
+			List<Triangle> ts = new List<Triangle>();
 			List<int> vs = new List<int>();
-			Model.Triangle tri;
+			Triangle tri;
 			//get or create the indices of all of the vertices
 			for(int i = 1; i < parameters.Length; i++)
 			{
@@ -154,7 +155,7 @@ namespace Subdivision_Project
 			//creates a fan from the first listed vertex
 			while(vs.Count > 2)
 			{
-				tri = new Model.Triangle();
+				tri = new Triangle();
 				tri.v0 = vs[0];
 				tri.v1 = vs[1];
 				tri.v2 = vs[2];
@@ -166,7 +167,7 @@ namespace Subdivision_Project
 
 		static int FindOrAddVertex(ref Vector3 vertex, ref Vector2 texCoord, ref Vector3 normal)
 		{
-			Model.Vertex newVertex = new Model.Vertex(vertex, normal, texCoord);
+			Vertex newVertex = new Vertex(vertex, normal, texCoord);
 
 			int index;
 			if (vertexIndexMap.TryGetValue(newVertex, out index))

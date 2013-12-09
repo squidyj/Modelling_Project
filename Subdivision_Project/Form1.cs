@@ -26,7 +26,6 @@ namespace Subdivision_Project
 		bool mousedown = false;
 		Vector3 oldPoint;
 		Vector3 origin = new Vector3(0, 0, 4);
-		float radius;
 		Matrix4 track = Matrix4.Identity;
 		Model activeModel;
 
@@ -58,7 +57,6 @@ namespace Subdivision_Project
 
 			models = new List<Model>();
 			fov = 60f * ((float) Math.PI / 180f);
-			Console.Out.WriteLine(fov);
 			createShaders();
 			getMatrixLocations();
 			setProjection();
@@ -158,7 +156,7 @@ namespace Subdivision_Project
 					modelview = track * view;
 					GL.UniformMatrix4(mvLoc, false, ref modelview);
 				if(activeModel != null)
-					activeModel.draw();
+					activeModel.draw(program);
 			glControl1.SwapBuffers();
 		}
 
@@ -170,10 +168,10 @@ namespace Subdivision_Project
 			open.FilterIndex = 1;
 			if (open.ShowDialog() != DialogResult.OK)
 				return;
-			Model m = new Model(open.FileName, program);
+			Model m = new Model(open.FileName);
 			models.Add(m);
 			activeModel = m;
-			setView(target: m.center); 
+			setView(target: m.Center); 
 			glControl1.Invalidate();
 		}
 
@@ -288,9 +286,15 @@ namespace Subdivision_Project
 
         private void button2_Click(object sender, EventArgs e)
         {
-            activeModel.simplify(1, 0.0005f);
-            glControl1.Invalidate();
-        }
+			activeModel.simplify((int)numTrisPicker.Value, (float)thresholdPicker.Value);
+			glControl1.Invalidate();
+		}
+
+		private void changeMesh(object sender, EventArgs e)
+		{
+			activeModel.setActive(((ComboBox)sender).SelectedIndex);
+			glControl1.Invalidate();
+		}
 
 	}
 }

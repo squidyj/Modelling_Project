@@ -17,7 +17,7 @@ void main () {
 	fnorm = (modelview * vec4(normal, 0)).xyz;
 	fpos = ipos.xyz;
 	tex = texcoord;
-	lpos = vec3 (0, 5, -5);
+	lpos = vec3 (0, 5, 5);
 	lpos = (modelview * vec4(lpos, 1)).xyz;
 	gl_Position = projection * ipos;
 }
