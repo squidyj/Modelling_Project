@@ -152,14 +152,13 @@ namespace Subdivision_Project
             p.v1.pos = p.vbar;
 
             HalfEdge firstEdge = p.v2.e;
-
             HalfEdge nextEdge = firstEdge;
             HalfEdge combineEdge1;
             HalfEdge combineEdge2;
 
             List<HalfEdge> edges = new List<HalfEdge>();
 
-            // TODO: Needs more testing
+            // TODO: This still loops forever on teapot
             do
             {
                 edges.Add(nextEdge);
@@ -169,12 +168,14 @@ namespace Subdivision_Project
 
             foreach (HalfEdge e in edges)
             {
-                // TODO: Does this deal with non-manifest and boundaries?
-                // ...or work at all?
-                if (e.vert == p.v1)
+                // NOTE: If trying to understand this code, remember that in this program's
+                // implementation of half-edge, each half-edge has a reference to its origin
+                // rather than its destination.
+
+                if (e.opposite.vert == p.v1)
                 {
-                    combineEdge1 = e.next.opposite;
-                    combineEdge2 = e.prev.opposite;
+                    combineEdge1 = e.prev.opposite;
+                    combineEdge2 = e.next.opposite;
 
                     p.v1.e = combineEdge2;
 
@@ -183,12 +184,12 @@ namespace Subdivision_Project
 
                     m.triangles.Remove(e.face);                    
                 }
-                else if (e.next.vert == p.v1)
+                else if (e.prev.opposite.vert == p.v1)
                 {
                     combineEdge1 = e.opposite;
-                    combineEdge2 = e.next.opposite;
+                    combineEdge2 = e.prev.opposite;
 
-                    combineEdge1.vert = p.v1;
+                    combineEdge1.opposite.vert = p.v1;
                     p.v1.e = combineEdge2;
 
                     combineEdge1.opposite = combineEdge2;
