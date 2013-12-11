@@ -28,7 +28,6 @@ namespace Subdivision_Project
             //then the costs for each contraction
             Console.Out.Write("Calculating costs...");
             timer.Restart();
-            validPairs = calcCosts(m, validPairs);
             timer.Stop();
             Console.Out.WriteLine(timer.ElapsedMilliseconds + "ms");
 
@@ -36,6 +35,7 @@ namespace Subdivision_Project
 			//contract the lowest cost pair and remove it from the heap
             Console.Out.Write("Contracting pairs...");
             timer.Restart();
+            Console.Out.WriteLine();
             while (m.triangles.Count() > targetTris && validPairs.Count > 0)
             {
                 Pair p = validPairs.First();
@@ -80,31 +80,13 @@ namespace Subdivision_Project
 
                     if (m.edges.Contains(newPair) || ((v1.pos - v2.pos).Length < threshold))
                     {
+                        newPair.update();
                         validpairs.Add(newPair);
                     }
                 }
             }
 
             return validpairs;
-		}
-
-        // TODO: Make sure update is working
-		public static SortedSet<Pair> calcCosts(Mesh m, SortedSet<Pair> validPairs)
-		{
-			//for every valid pair
-			//take the sum of the quadric matrix for the two vertices
-			//find the optimal vertex position, vbar
-			//find the cost associated with that position
-
-            SortedSet<Pair> updatedPairs = new SortedSet<Pair>();
-
-            foreach (Pair p in validPairs)
-            {
-                p.update();
-                updatedPairs.Add(p);
-            }
-
-            return updatedPairs;
 		}
 
         // TODO: Complete this        
@@ -115,6 +97,8 @@ namespace Subdivision_Project
 
             foreach (Pair updatePair in validPairs)
             {
+
+
                 if (p.v1 == p.v2)
                 {
                     throw new Exception("A pair with a vertex and itself has been given as input!");
@@ -189,28 +173,27 @@ namespace Subdivision_Project
                 // ...or work at all?
                 if (e.vert == p.v1)
                 {
-                    combineEdge1 = e.next;
-                    combineEdge2 = e.prev;
+                    combineEdge1 = e.next.opposite;
+                    combineEdge2 = e.prev.opposite;
 
-                    e.vert = p.v1;
-
-                    p.v1.e = combineEdge1;
+                    p.v1.e = combineEdge2;
 
                     combineEdge1.opposite = combineEdge2;
                     combineEdge2.opposite = combineEdge1;
-                    
-                    m.triangles.Remove(e.face);
+
+                    m.triangles.Remove(e.face);                    
                 }
                 else if (e.next.vert == p.v1)
                 {
-                    combineEdge1 = e;
-                    combineEdge2 = e.next;
+                    combineEdge1 = e.opposite;
+                    combineEdge2 = e.next.opposite;
 
-                    p.v1.e = combineEdge1;
+                    combineEdge1.vert = p.v1;
+                    p.v1.e = combineEdge2;
 
                     combineEdge1.opposite = combineEdge2;
                     combineEdge2.opposite = combineEdge1;
-                    
+
                     m.triangles.Remove(e.face);
                 }
                 e.vert = p.v1;
