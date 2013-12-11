@@ -284,13 +284,46 @@ namespace Subdivision_Project
 
 			public void findVBar()
 			{
-				Matrix4 qnot = new Matrix4();
-				qnot.Row0 = Q.row1;
-				qnot.Row1 = Q.row2;
-				qnot.Row2 = Q.row3;
-				qnot.Row3 = new Vector4(0, 0, 0, 1);
-				qnot.Invert();
-				vbar = new Vector3(qnot.Column3);
+                Vector3 midpoint = (v1.pos + v2.pos) / 2;
+                vbar = midpoint;
+                calcCost();
+
+                Vector3 bestVbar = midpoint;
+                float lowestCost = cost;
+
+                vbar = v1.pos;
+                calcCost();
+
+                if (cost < lowestCost) 
+                {
+                    bestVbar = v1.pos; 
+                    lowestCost = cost;
+                }
+
+                vbar = v2.pos;
+                calcCost();
+
+                if (cost < lowestCost)
+                {
+                    bestVbar = v2.pos;
+                    lowestCost = cost;
+                }
+
+                vbar = bestVbar;
+                calcCost();
+
+                // TODO: Fix it
+
+                /*  This doesn't work yet for some reason
+                 * 
+				    Matrix4 qnot = new Matrix4();
+				    qnot.Row0 = Q.row1;
+				    qnot.Row1 = Q.row2;
+				    qnot.Row2 = Q.row3;
+				    qnot.Row3 = new Vector4(0, 0, 0, 1);
+				    qnot.Invert();
+				    vbar = new Vector3(qnot.Column3);
+                */
 			}
 
 			public void calcCost()
