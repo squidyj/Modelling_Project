@@ -16,7 +16,7 @@ namespace Subdivision_Project
 	public partial class Form1 : Form
 	{
 		//program, vertex shader, fragment shader, and modelview locations
-		int program, vs, fs, mvLoc, pLoc;
+		int program, vs, fs, mvLoc, pLoc, model;
 		//field of view
 		float fov = 0.5f; 
 		float ratio;
@@ -25,7 +25,7 @@ namespace Subdivision_Project
 		Vector3 badPoint = new Vector3(55, 55, 55);
 		bool mousedown = false;
 		Vector3 oldPoint;
-		Vector3 origin = new Vector3(0, 0, 4);
+		Vector3 origin = new Vector3(0, 0, -3);
 		Matrix4 track = Matrix4.Identity;
 		Model activeModel;
 
@@ -47,8 +47,6 @@ namespace Subdivision_Project
 			GL.ClearColor(Color.Bisque);
 			GL.Enable(EnableCap.DepthTest);
 			GL.FrontFace(FrontFaceDirection.Ccw);
-			//GL.Enable(EnableCap.CullFace);
-			//GL.CullFace(CullFaceMode.Back);
 			
 			var glVersion = GL.GetString(StringName.Version);
 			int major = int.Parse(glVersion[0].ToString());
@@ -79,7 +77,8 @@ namespace Subdivision_Project
 
 		private void getMatrixLocations()
 		{
-			mvLoc = GL.GetUniformLocation(program, "modelview");
+			model = GL.GetUniformLocation(program, "model");
+			mvLoc = GL.GetUniformLocation(program, "view");
 			pLoc = GL.GetUniformLocation(program, "projection");
 		}
 
@@ -94,7 +93,7 @@ namespace Subdivision_Project
 				up = new Vector3(0,1,0);
 			if(target == null)
 				target = new Vector3(0,0,0);
-			view = Matrix4.LookAt((Vector3)eye, (Vector3)up, (Vector3)target);
+			view = Matrix4.LookAt((Vector3)eye, (Vector3)target, (Vector3)up);
 		}
 
 		private void initMatrices()
@@ -153,10 +152,12 @@ namespace Subdivision_Project
 			GL.Clear(ClearBufferMask.DepthBufferBit | ClearBufferMask.ColorBufferBit | ClearBufferMask.StencilBufferBit); // Clear required buffers
 			Matrix4 modelview;
 			//GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
-					modelview = track * view;
-					GL.UniformMatrix4(mvLoc, false, ref modelview);
-				if(activeModel != null)
-					activeModel.draw(program);
+			if (activeModel != null)
+			{
+				modelview = track * view;
+				GL.UniformMatrix4(mvLoc, false, ref modelview);
+				activeModel.draw(model);
+			}
 			glControl1.SwapBuffers();
 		}
 
@@ -171,7 +172,7 @@ namespace Subdivision_Project
 			Model m = new Model(open.FileName);
 			models.Add(m);
 			activeModel = m;
-			setView(target: m.Center); 
+			setView(target: new Vector3(0, 0, 0)); 
 			glControl1.Invalidate();
 		}
 
@@ -273,12 +274,16 @@ namespace Subdivision_Project
 			{
 				case 0:
 					GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+					GL.Disable(EnableCap.CullFace);
 					break;
 				case 1:
 					GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+					GL.Enable(EnableCap.CullFace);
+					GL.CullFace(CullFaceMode.Back);
 					break;
 				case 2:
 					GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Point);
+					GL.Disable(EnableCap.CullFace);
 					break;
 			}
 			glControl1.Invalidate();

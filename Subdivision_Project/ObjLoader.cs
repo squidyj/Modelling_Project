@@ -3,6 +3,7 @@ using System.IO;
 using System.Collections.Generic;
 using OpenTK;
 using Subdivision_Project.Primitives;
+using System.Diagnostics;
 namespace Subdivision_Project
 {
 	public class ObjLoader
@@ -29,7 +30,7 @@ namespace Subdivision_Project
 		static List<Vector2> texCoords;
 		static Dictionary<Vertex, int> vertexIndexMap;
 		static List<Vertex> mVertices;
-		static List<Triangle> mTriangles;
+		static List<DrawTriangle> mTriangles;
 
 		static void Load(Mesh mesh, TextReader textReader)
 		{
@@ -38,9 +39,11 @@ namespace Subdivision_Project
 			texCoords = new List<Vector2>();
 			vertexIndexMap = new Dictionary<Vertex, int>();
 			mVertices = new List<Vertex>();
-			mTriangles = new List<Triangle>();
-
+			mTriangles = new List<DrawTriangle>();
 			string line;
+			Stopwatch readTimer = new Stopwatch();
+			readTimer.Start();
+			Console.Out.WriteLine("Beginning to read file");
 			while ((line = textReader.ReadLine()) != null)
 			{
 				line = line.Trim(splitCharacters);
@@ -77,10 +80,11 @@ namespace Subdivision_Project
 						switch (parameters.Length)
 						{
 							case 4:
-								Triangle objTriangle = new Triangle();
+								DrawTriangle objTriangle = new DrawTriangle();
 								objTriangle.v0 = ParseFaceParameter(parameters[1]);
 								objTriangle.v1 = ParseFaceParameter(parameters[2]);
 								objTriangle.v2 = ParseFaceParameter(parameters[3]);
+								objTriangle.normal = calcFNormal(objTriangle, mVertices);
 								mTriangles.Add(objTriangle);
 								break;
 
@@ -91,17 +95,17 @@ namespace Subdivision_Project
 						}
 						break;
 				}
-			}
+			}		
+			mesh.vertices = mVertices;
+			mesh.drawtriangles = mTriangles.ToArray();
+			Console.Out.WriteLine("File read, took " + readTimer.ElapsedMilliseconds + " milliseconds");
+		}
 
-			mesh.Vertices = mVertices.ToArray();
-			mesh.Triangles = mTriangles.ToArray();
-
-			vertexIndexMap = null;
-			vertices = null;
-			normals = null;
-			texCoords = null;
-			mVertices = null;
-			mTriangles = null;
+		static Vector3 calcFNormal(DrawTriangle t, List<Vertex> vertices)
+		{
+			Vector3 v1 = vertices[t.v1].pos - vertices[t.v0].pos;
+			Vector3 v2 = vertices[t.v2].pos - vertices[t.v0].pos;
+			return Vector3.Normalize(Vector3.Cross(v1, v2));
 		}
 
 		static char[] faceParamaterSplitter = new char[] { '/' };
@@ -141,11 +145,11 @@ namespace Subdivision_Project
 
 
 		//naive triangulation assumes convex and winding property
-		static List<Triangle> triangulate(string[] parameters)
+		static List<DrawTriangle> triangulate(string[] parameters)
 		{
-			List<Triangle> ts = new List<Triangle>();
+			List<DrawTriangle> ts = new List<DrawTriangle>();
 			List<int> vs = new List<int>();
-			Triangle tri;
+			DrawTriangle tri;
 			//get or create the indices of all of the vertices
 			for(int i = 1; i < parameters.Length; i++)
 			{
@@ -155,7 +159,7 @@ namespace Subdivision_Project
 			//creates a fan from the first listed vertex
 			while(vs.Count > 2)
 			{
-				tri = new Triangle();
+				tri = new DrawTriangle();
 				tri.v0 = vs[0];
 				tri.v1 = vs[1];
 				tri.v2 = vs[2];
@@ -167,7 +171,7 @@ namespace Subdivision_Project
 
 		static int FindOrAddVertex(ref Vector3 vertex, ref Vector2 texCoord, ref Vector3 normal)
 		{
-			Vertex newVertex = new Vertex(vertex, normal, texCoord);
+			Vertex newVertex = new Vertex(vertex);
 
 			int index;
 			if (vertexIndexMap.TryGetValue(newVertex, out index))

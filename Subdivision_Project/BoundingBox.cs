@@ -25,26 +25,26 @@ namespace Subdivision_Project
 		public BoundingBox(Mesh m)
 		{
 			//set the min and the max to the values of the first vertex to ensure 
-			min = m.Vertices[0].vert;
-			max = m.Vertices[0].vert;
+			min = m.vertices[0].pos;
+			max = m.vertices[0].pos;
 			center = new Vector3();
 
 
-			foreach (Vertex v in m.Vertices)
+			foreach (Vertex v in m.vertices)
 			{
-				max.X = Math.Max(v.vert.X, max.X);
-				max.Y = Math.Max(v.vert.Y, max.Y);
-				max.Z = Math.Max(v.vert.Z, max.Z);
+				max.X = Math.Max(v.pos.X, max.X);
+				max.Y = Math.Max(v.pos.Y, max.Y);
+				max.Z = Math.Max(v.pos.Z, max.Z);
 
-				min.X = Math.Min(v.vert.X, min.X);
-				min.Y = Math.Min(v.vert.Y, min.Y);
-				min.Z = Math.Min(v.vert.Z, min.Z);
+				min.X = Math.Min(v.pos.X, min.X);
+				min.Y = Math.Min(v.pos.Y, min.Y);
+				min.Z = Math.Min(v.pos.Z, min.Z);
 
-				center += v.vert;
+				center += v.pos;
 			}
 			//make the height 2 units
 			scale = xSize / (max.X - min.X);
-			center = (1.0f / m.Vertices.Length) * center;
+			center = (1.0f / m.vertices.Count) * center;
 		}
 
 		public Matrix4 orientMesh()

@@ -10,14 +10,15 @@ out vec3 lpos;
 out vec2 tex;
 
 uniform mat4 projection;
-uniform mat4 modelview;
+uniform mat4 view;
+uniform mat4 model;
 void main () {
 
-	vec4 ipos = modelview * vec4(position, 1); 
-	fnorm = (modelview * vec4(normal, 0)).xyz;
+	vec4 ipos = view * model * vec4(position, 1); 
+	fnorm = (view * model * vec4(normal, 0)).xyz;
 	fpos = ipos.xyz;
 	tex = texcoord;
 	lpos = vec3 (0, 5, 5);
-	lpos = (modelview * vec4(lpos, 1)).xyz;
+	lpos = (view * vec4(lpos, 1)).xyz;
 	gl_Position = projection * ipos;
 }

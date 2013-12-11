@@ -9,19 +9,20 @@ namespace Subdivision_Project
 {
 	class LoopSubdivision
 	{
+		/*
 		public static Mesh subdivide(Mesh m)
 		{
-
-			List<Triangle> mTriangles = new List<Triangle>();
-			List<Vertex> mVerts = m.Vertices.ToList();
-			Dictionary<Vertex, int> lookup = new Dictionary<Vertex, int>();
+		
+			List<DrawTriangle> mTriangles = new List<DrawTriangle>();
+			List<DrawVertex> mVerts = m.Vertices.ToList();
+			Dictionary<DrawVertex, int> lookup = new Dictionary<DrawVertex, int>();
 			int off = m.Vertices.Length;
 			int v0, v1, v2;
 
 			//begin by updating adjacency data for all vertices
 			//ideally this would be maintained with each modification to the mesh
 			//for each face in the mesh
-			Triangle t;
+			DrawTriangle t;
 			for (int i = 0; i < m.Triangles.Length; i++)
 			{
 				t = m.Triangles[i];
@@ -32,13 +33,13 @@ namespace Subdivision_Project
 				v2 = edgeVertex(m, t.v2, t.v0, t.v1, mVerts, lookup);
 
 				//construct the 4 new faces maintaining the original winding
-				mTriangles.Add(new Triangle(t.v0, v0, v2));
-				mTriangles.Add(new Triangle(v0, t.v1, v1));
-				mTriangles.Add(new Triangle(v0, v1, v2));
-				mTriangles.Add(new Triangle(v2, v1, t.v2));
+				mTriangles.Add(new DrawTriangle(t.v0, v0, v2));
+				mTriangles.Add(new DrawTriangle(v0, t.v1, v1));
+				mTriangles.Add(new DrawTriangle(v0, v1, v2));
+				mTriangles.Add(new DrawTriangle(v2, v1, t.v2));
 			}
 
-			Vertex v;
+			DrawVertex v;
 			int[] adj;
 			HashSet<int> bound;
 			for (int i = 0; i < off; i++)
@@ -59,9 +60,9 @@ namespace Subdivision_Project
 			return new Mesh(mVerts.ToArray(), mTriangles.ToArray(), m.Box);
 		}
 
-		private static Vertex meanNeighbourhood(Mesh m, int n)
+		private static DrawVertex meanNeighbourhood(Mesh m, int n)
 		{
-			Vertex v = new Vertex();
+			DrawVertex v = new DrawVertex();
 			foreach (int i in m.aVertices[n])
 			{
 				v += m.Vertices[i];
@@ -69,10 +70,10 @@ namespace Subdivision_Project
 			return (1.0f / m.aVertices[n].Count * v);
 		}
 
-		private static int edgeVertex(Mesh m, int v0, int v1, int o1, List<Vertex> verts, Dictionary<Vertex, int> lookup)
+		private static int edgeVertex(Mesh m, int v0, int v1, int o1, List<DrawVertex> verts, Dictionary<DrawVertex, int> lookup)
 		{
 			//we are given two adjacent vertices and an opposite vertex, we need to find the final opposite vertex if it exists
-			Vertex v;
+			DrawVertex v;
 			//the edge vertex is boundary if and only if its adjacent vertices are boundary
 			if (m.boundary.Contains(v0) && m.boundary.Contains(v1))
 				v = 0.5f * (verts[v0] + verts[v1]);
@@ -98,18 +99,18 @@ namespace Subdivision_Project
 		}
 
 		//find the position of the kth additional subdivision of this vertex
-		private static Vertex findPosition(Mesh m, int k, int i)
+		private static DrawVertex findPosition(Mesh m, int k, int i)
 		{
-			Vertex v;
+			DrawVertex v;
 			float alpha = findAlpha(m.aVertices[i].Count);
 			float mu = (float)Math.Pow((0.625f - alpha), k);
 			v = mu * m.Vertices[i] + (1 - mu) * findLimitPosition(m, i, alpha);
 			return v;
 		}
 
-		private static Vertex findLimitPosition(Mesh m, int i, float alpha)
+		private static DrawVertex findLimitPosition(Mesh m, int i, float alpha)
 		{
-			Vertex v;
+			DrawVertex v;
 			float beta = 1 / (1 + ((float)(8 / 3) + alpha));
 			v = beta * m.Vertices[i] + (1 - beta) * meanNeighbourhood(m, i);
 			return v;
@@ -120,6 +121,6 @@ namespace Subdivision_Project
 			return ((float)(0.625f - Math.Pow((0.375f + 0.25f * Math.Cos(2 * Math.PI / n)), 2)));
 		}
 
-
+			*/
 	}
 }

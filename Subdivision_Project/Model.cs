@@ -11,7 +11,7 @@ namespace Subdivision_Project
 {
 	public class Model
 	{
-		Mesh baseMesh, simplifiedMesh, subdividedMesh, activeMesh;
+		public Mesh baseMesh, simplifiedMesh, subdividedMesh, activeMesh;
 		//indicates whether model should be rendered
 
 		public Vector3 Center
@@ -52,25 +52,27 @@ namespace Subdivision_Project
 			return true;
 		}
 
-		//subdivide the current mesh by one level
-		//hope to add arbitrary number of subdivisions
 		public void subdivide()
 		{
+			/*
 			var temp = LoopSubdivision.subdivide(activeMesh);
 			if (temp == null)
 				return;
 			subdividedMesh = temp;
 			activeMesh = subdividedMesh;
+			 */
 		}
  
         public void simplify(int targetTris, float threshold)
         {
-			var temp = Simplification.simplify(activeMesh, targetTris, threshold);
+			/*
+			var temp = Simple.simplify(activeMesh, targetTris, threshold);
 			if (temp == null)
 				return;
 			simplifiedMesh = temp;
 			activeMesh = simplifiedMesh;
-        }
+			 */ 
+		}
 
 		public void draw(int p) {
 			activeMesh.draw(p); }
