@@ -174,7 +174,7 @@ namespace Subdivision_Project
 			}
 		}
 
-		public class Vertex
+		public class Vertex : IEquatable<Vertex>
 		{
 			public HalfEdge e;
 			public int n;
@@ -197,6 +197,16 @@ namespace Subdivision_Project
 			public Vertex(Vector3 v)
 			{
 				pos = v;
+			}
+
+			public override int GetHashCode()
+			{
+				return pos.GetHashCode();
+			}
+
+			public bool Equals(Vertex v)
+			{
+				return pos == v.pos;
 			}
 
 			public HashSet<Triangle> adjacentFaces()

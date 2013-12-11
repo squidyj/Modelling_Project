@@ -10,7 +10,7 @@ using System.Windows.Forms;
 using OpenTK.Graphics.OpenGL;
 using System.IO;
 using OpenTK;
-
+using Subdivision_Project.Primitives;
 namespace Subdivision_Project
 {
 	public partial class Form1 : Form
@@ -59,6 +59,13 @@ namespace Subdivision_Project
 			getMatrixLocations();
 			setProjection();
 			setView();
+
+			Vector3 v1 = new Vector3(0, 0.5f, 0);
+			Vector3 v2 = new Vector3(0, 0.5f, 0);
+			Vertex a2 = new Vertex(v2);
+			Vertex a1 = new Vertex(v1);
+			Console.Out.WriteLine(a1.Equals(a2));
+			
 		}
 
 		private void setProjection()
