@@ -56,34 +56,6 @@ namespace Subdivision_Project
 			return m;
 		}
 
-        // Wait is this already done in vertex as adjacent vertices?!
-        // TODO: Check logic
-        // Edit: Looks good. I checked with testgraph.obj and outputted the positions of the vertex pairs.
-        // TODO: Question: Can an edge not have an opposite?
-        public static bool isEdge(Vertex v1, Vertex v2)
-        {
-            HalfEdge firstEdge = v1.e;
-            HalfEdge nextEdge = firstEdge;
-
-            Console.Out.WriteLine("First edge: " + firstEdge.vert.n + " to " + firstEdge.opposite.vert.n + " = " + firstEdge.next.vert.n);
-
-            Console.Out.WriteLine("First edge is part of triangle: (" + firstEdge.vert.n + ", " + firstEdge.next.vert.n + ", " + firstEdge.prev.vert.n + ")");
-            Console.Out.WriteLine("First edge opposite is part of triangle: (" + firstEdge.opposite.vert.n + ", " + firstEdge.opposite.next.vert.n + ", " + firstEdge.opposite.prev.vert.n + ")");
-
-            Console.Out.WriteLine("Checking neighbours of v1: " + v1.n + " for v2: " + v2.n);
-
-            do
-            {
-                Console.Out.WriteLine("v1: " + v1.n + " has an edge: " + nextEdge.vert.n + " to " + nextEdge.opposite.vert.n + " = " + nextEdge.next.vert.n);
-
-                if (nextEdge.next.vert.n == v2.n) { return true; }
-                else { nextEdge = nextEdge.opposite.next; }
-            }
-            while (nextEdge != firstEdge);
-
-            return false;
-        }
-
 		public static SortedSet<Pair> findValidPairs(Mesh m, float threshold)
 		{
 			//for every vertex in the mesh, v1
@@ -94,17 +66,21 @@ namespace Subdivision_Project
             SortedSet<Pair> validpairs = new SortedSet<Pair>();
             int numOfVertices = m.vertices.Count();
             Vertex v1, v2;
+            Pair newPair;
 
             for (int i = 0; i < numOfVertices; i++)
             {
+                v1 = m.vertices[i];
+
                 for (int j = i + 1; j < numOfVertices; j++)
                 {
-                    v1 = m.vertices[i];
                     v2 = m.vertices[j];
 
-                    if (isEdge(v1, v2) || ((v1.pos - v2.pos).Length < threshold))
+                    newPair = new Pair(v1, v2);
+
+                    if (m.edges.Contains(newPair) || ((v1.pos - v2.pos).Length < threshold))
                     {
-                        validpairs.Add(new Pair(v1, v2));
+                        validpairs.Add(newPair);
                     }
                 }
             }
@@ -189,19 +165,9 @@ namespace Subdivision_Project
 			//every edge to p.v2 must become an edge to p.v1
 			//delete all degenerate triangles
 
-            m.vertices[p.v1.n].pos = p.vbar;
+            p.v1.pos = p.vbar;
 
             HalfEdge firstEdge = p.v2.e;
-
-            Console.Out.WriteLine();
-
-            Console.Out.WriteLine("FirstEdge: " + firstEdge.vert.n + " to " + firstEdge.opposite.vert.n);
-
-            Console.Out.WriteLine("FirstEdge.next: " + firstEdge.next.vert.n + " to " + firstEdge.next.opposite.vert.n);
-            Console.Out.WriteLine("FirstEdge.prev: " + firstEdge.prev.vert.n + " to " + firstEdge.prev.opposite.vert.n);
-
-            Console.Out.WriteLine("FirstEdge.opposite.next: " + firstEdge.opposite.next.vert.n + " to " + firstEdge.opposite.next.opposite.vert.n);
-            Console.Out.WriteLine("FirstEdge.opposite.prev: " + firstEdge.opposite.prev.vert.n + " to " + firstEdge.opposite.prev.opposite.vert.n);
 
             HalfEdge nextEdge = firstEdge;
             HalfEdge combineEdge1;
@@ -209,13 +175,11 @@ namespace Subdivision_Project
 
             List<HalfEdge> edges = new List<HalfEdge>();
 
-            Console.Out.WriteLine("Finding neighbours of v2: " + p.v2.n);
-
+            // TODO: Needs more testing
             do
             {
-                Console.Out.WriteLine("Edge : " + nextEdge.vert.n + " to " + nextEdge.opposite.vert.n);
                 edges.Add(nextEdge);
-                // nextEdge = nextEdge.next.opposite;
+                nextEdge = nextEdge.next.opposite;
             }
             while (nextEdge != firstEdge);
 
@@ -223,12 +187,12 @@ namespace Subdivision_Project
             {
                 // TODO: Does this deal with non-manifest and boundaries?
                 // ...or work at all?
-                if (e.opposite.vert == p.v1)
+                if (e.vert == p.v1)
                 {
-                    combineEdge1 = e.prev.opposite;
-                    combineEdge2 = e.next.opposite;
+                    combineEdge1 = e.next;
+                    combineEdge2 = e.prev;
 
-                    combineEdge1.vert = p.v1;
+                    e.vert = p.v1;
 
                     p.v1.e = combineEdge1;
 
@@ -237,10 +201,10 @@ namespace Subdivision_Project
                     
                     m.triangles.Remove(e.face);
                 }
-                else if (e.next.opposite.vert == p.v1)
+                else if (e.next.vert == p.v1)
                 {
-                    combineEdge1 = e.next.opposite;
-                    combineEdge2 = e.opposite;
+                    combineEdge1 = e;
+                    combineEdge2 = e.next;
 
                     p.v1.e = combineEdge1;
 
