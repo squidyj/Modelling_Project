@@ -65,13 +65,11 @@ namespace Subdivision_Project
  
         public void simplify(int targetTris, float threshold)
         {
-			/*
 			var temp = Simple.simplify(activeMesh, targetTris, threshold);
 			if (temp == null)
 				return;
 			simplifiedMesh = temp;
 			activeMesh = simplifiedMesh;
-			 */ 
 		}
 
 		public void draw(int p) {

@@ -279,7 +279,7 @@ namespace Subdivision_Project
 
 			public bool Equals(Pair p)
 			{
-				return (v1.Equals(p.v1) || v1.Equals(p.v2)) && (v2.Equals(p.v2) || v2.Equals(p.v1));	
+				return (v1.Equals(p.v1) && v2.Equals(p.v2)) || (v1.Equals(p.v2) && v2.Equals(p.v1));	
 			}
 
 			public void findVBar()

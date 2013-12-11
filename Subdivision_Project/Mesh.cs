@@ -149,7 +149,7 @@ namespace Subdivision_Project
 		}
 
 		//calculates Q matrices for all triangles and Verteices
-		//generates half-edge dtat structure
+		//generates half-edge data structure
 		//generates a set of edges that exist in the mesh as a starting point for pair contraction
 		private void initHalfEdge()
 		{
