@@ -42,11 +42,6 @@ namespace Subdivision_Project
             {
                 Pair p = new Pair(validPairs.First());
                 p.update();
-
-                if (p.v1.n == 3131 || p.v2.n == 3131)
-                {
-                    Console.Out.WriteLine("GOT IT!");
-                }
 /*
                 Console.Out.WriteLine("Now attempting to contract pair: (" + p.v1.n + ", " + p.v2.n + ")");
                 Console.Out.WriteLine("The pair is in validPairs: " + validPairs.Contains(p));
@@ -141,17 +136,18 @@ namespace Subdivision_Project
             HalfEdge firstEdge = p.v2.e;
             HalfEdge nextEdge = firstEdge;
 
-            List<HalfEdge> edges = new List<HalfEdge>();
+            HashSet<HalfEdge> edges = new HashSet<HalfEdge>();
 
+            bool success;
             // TODO: This still loops forever on teapot
             do
             {
 //                Console.Out.WriteLine("First edge: " + firstEdge.vert.n + ", " + firstEdge.opposite.vert.n);
 //                Console.Out.WriteLine("Current edge: " + nextEdge.vert.n + ", " + nextEdge.opposite.vert.n);
-                edges.Add(nextEdge);
+                success = edges.Add(nextEdge);
                 nextEdge = nextEdge.opposite.prev;
             }
-            while (nextEdge != firstEdge);
+            while (success);
 
             foreach (HalfEdge e in edges)
             {
@@ -196,6 +192,9 @@ namespace Subdivision_Project
                     e.vert = p.v1;
                 }
             }
+
+            m.vertices.Remove(p.v2);
+
             return m;
 		}
 	}
