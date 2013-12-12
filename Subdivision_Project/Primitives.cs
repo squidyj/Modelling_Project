@@ -258,6 +258,9 @@ namespace Subdivision_Project
 			public Pair(Vertex v1, Vertex v2)
 			{ this.v1 = v1; this.v2 = v2; }
 
+            public Pair(Pair p)
+            { this.v1 = p.v1; this.v2 = p.v2; }
+
 			public void update()
 			{
 				Q = v1.Q + v2.Q;

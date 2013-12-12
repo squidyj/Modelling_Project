@@ -18,6 +18,8 @@ namespace Subdivision_Project
             Stopwatch timer = new Stopwatch();
             int numOfTris = m.triangles.Count();
 
+            Console.Out.WriteLine("Now simplifying to at most " + targetTris + " triangles");
+
 			//then the valid pairs
             Console.Out.Write("Finding valid pairs...");
             timer.Restart();
@@ -38,10 +40,22 @@ namespace Subdivision_Project
             Console.Out.WriteLine();
             while (m.triangles.Count() > targetTris && validPairs.Count > 0)
             {
-                Pair p = validPairs.First();
+                Pair p = new Pair(validPairs.First());
+                p.update();
+
+                if (p.v1.n == 3131 || p.v2.n == 3131)
+                {
+                    Console.Out.WriteLine("GOT IT!");
+                }
+/*
+                Console.Out.WriteLine("Now attempting to contract pair: (" + p.v1.n + ", " + p.v2.n + ")");
+                Console.Out.WriteLine("The pair is in validPairs: " + validPairs.Contains(p));
+ */
                 validPairs.Remove(p);
+//                Console.Out.WriteLine("The pair is in validPairs: " + validPairs.Contains(p));
                 m = contract(m, p);
                 validPairs = updateCosts(m, validPairs, p);
+//              Console.Out.WriteLine("Contracted pair (" + p.v1.n + ", " + p.v2.n + ")");
             }
             timer.Stop();
             Console.Out.WriteLine(timer.ElapsedMilliseconds + "ms");
@@ -97,45 +111,18 @@ namespace Subdivision_Project
 
             foreach (Pair updatePair in validPairs)
             {
-
-
-                if (p.v1 == p.v2)
-                {
-                    throw new Exception("A pair with a vertex and itself has been given as input!");
-                }
-
-                else if (updatePair.v1 == updatePair.v2)
-                {
-                    throw new Exception("A pair with a vertex and itself has been found!");
-                }
-
-                else if ((updatePair.v1 == p.v1 && updatePair.v2 == p.v2) ||
+                if ((updatePair.v1 == p.v1 && updatePair.v2 == p.v2) ||
                     (updatePair.v1 == p.v2 && updatePair.v2 == p.v1))
                 {
-                    throw new Exception("A pair with the same vertices as the removed pair was found!");
+                    // throw new Exception("A pair with the same vertices as the removed pair was found!");
                 }
 
                 else
                 {
-                    newPair = updatePair;
-
-                    if (updatePair.v1 == p.v1 || updatePair.v2 == p.v1)
-                    {
-                        newPair.update();
-                    }
-
-                    else if (updatePair.v1 == p.v2)
-                    {
-                        newPair.v1 = p.v1;
-                        newPair.update();
-                    }
-
-                    else if (updatePair.v2 == p.v2)
-                    {
-                        newPair.v2 = p.v1;
-                        newPair.update();
-                    }
-
+                    newPair = new Pair(updatePair);
+                    if (updatePair.v1 == p.v2) { newPair.v1 = p.v1; }
+                    else if (updatePair.v2 == p.v2) { newPair.v2 = p.v1; }
+                    newPair.update();
                     updatedPairs.Add(newPair);
                 }
             }
@@ -153,53 +140,62 @@ namespace Subdivision_Project
 
             HalfEdge firstEdge = p.v2.e;
             HalfEdge nextEdge = firstEdge;
-            HalfEdge combineEdge1;
-            HalfEdge combineEdge2;
 
             List<HalfEdge> edges = new List<HalfEdge>();
 
             // TODO: This still loops forever on teapot
             do
             {
+//                Console.Out.WriteLine("First edge: " + firstEdge.vert.n + ", " + firstEdge.opposite.vert.n);
+//                Console.Out.WriteLine("Current edge: " + nextEdge.vert.n + ", " + nextEdge.opposite.vert.n);
                 edges.Add(nextEdge);
-                nextEdge = nextEdge.next.opposite;
+                nextEdge = nextEdge.opposite.prev;
             }
             while (nextEdge != firstEdge);
 
             foreach (HalfEdge e in edges)
             {
-                // NOTE: If trying to understand this code, remember that in this program's
-                // implementation of half-edge, each half-edge has a reference to its origin
-                // rather than its destination.
+                // NOTE: If trying to understand this code, this half-edge implementation is a bit weird.
+                // Each vertex has a reference to an edge
+                // Each edge has a reference to its starting vertex.
+                // An edge's opposite has the same vertex as the edge's previous's vertex
+                // ^ (This part is weird. Treat prev as next and next as prev.)
 
-                if (e.opposite.vert == p.v1)
+                HalfEdge oppExternEdge;
+                HalfEdge adjExternEdge;
+
+                if (e.prev.opposite.vert == p.v1)
                 {
-                    combineEdge1 = e.prev.opposite;
-                    combineEdge2 = e.next.opposite;
+                    adjExternEdge = e.opposite;
+                    oppExternEdge = e.prev.opposite;
 
-                    p.v1.e = combineEdge2;
+                    p.v1.e = oppExternEdge;
 
-                    combineEdge1.opposite = combineEdge2;
-                    combineEdge2.opposite = combineEdge1;
+                    if (oppExternEdge.vert != p.v1) { throw new Exception(); }
 
-                    m.triangles.Remove(e.face);                    
-                }
-                else if (e.prev.opposite.vert == p.v1)
-                {
-                    combineEdge1 = e.opposite;
-                    combineEdge2 = e.prev.opposite;
-
-                    combineEdge1.opposite.vert = p.v1;
-                    p.v1.e = combineEdge2;
-
-                    combineEdge1.opposite = combineEdge2;
-                    combineEdge2.opposite = combineEdge1;
+                    adjExternEdge.opposite = oppExternEdge;
+                    oppExternEdge.opposite = adjExternEdge;
 
                     m.triangles.Remove(e.face);
                 }
-                e.vert = p.v1;
-            }
+                else if (e.opposite.vert == p.v1)
+                {
+                    adjExternEdge = e.next.opposite;
+                    oppExternEdge = e.prev.opposite;
 
+                    adjExternEdge.vert = p.v1;
+                    p.v1.e = adjExternEdge;
+
+                    adjExternEdge.opposite = oppExternEdge;
+                    oppExternEdge.opposite = adjExternEdge;
+
+                    m.triangles.Remove(e.face);
+                }
+                else
+                {
+                    e.vert = p.v1;
+                }
+            }
             return m;
 		}
 	}
