@@ -225,6 +225,8 @@ namespace Subdivision_Project
 			//inefficient to calculate 
 			public bool boundary()
 			{
+				//all boundary vertices should have their half-edge reference be to the boundary half-edge they are part of
+				//just in case this isnt true
 				HalfEdge e0 = e;
 				do{
 					if(e0.face == null)
@@ -284,11 +286,14 @@ namespace Subdivision_Project
 
 			public void findVBar()
 			{
+				//make our mat4 into a matrix4 to avoid having to implement an invert function
 				Matrix4 qnot = new Matrix4();
 				qnot.Row0 = Q.row1;
 				qnot.Row1 = Q.row2;
 				qnot.Row2 = Q.row3;
 				qnot.Row3 = new Vector4(0, 0, 0, 1);
+				//this can throw an exception in the case where the matrix is not invertible
+				//doesnt seem to happen in practice
 				qnot.Invert();
 				vbar = new Vector3(qnot.Column3);
 			}

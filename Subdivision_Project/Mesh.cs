@@ -153,6 +153,7 @@ namespace Subdivision_Project
 		//generates a set of edges that exist in the mesh as a starting point for pair contraction
 		private void initHalfEdge()
 		{
+			HashSet<HalfEdge> he = new HashSet<HalfEdge>();
 			Dictionary<Pair, HalfEdge> lookup = new Dictionary<Pair, HalfEdge>();
 			edges = new HashSet<Pair>();
 			HalfEdge e0, e1, e2, opp;
@@ -223,6 +224,7 @@ namespace Subdivision_Project
 					lookup.Add(e0.edge, e0);
 					edges.Add(e0.edge);
 				}
+				he.Add(e0); he.Add(e1); he.Add(e2);
 			}
 
 			Console.Out.WriteLine("Interior HalfEdges complete, took " + timer.ElapsedMilliseconds + " milliseconds");
@@ -239,7 +241,19 @@ namespace Subdivision_Project
 				e.vert.e = e0;
 				walkBoundary(e0);
 			}
-			Console.Out.WriteLine("Exterior HalfEdges complete, took " + timer.ElapsedMilliseconds + " milliseconds");			
+			Console.Out.WriteLine("Exterior HalfEdges complete, took " + timer.ElapsedMilliseconds + " milliseconds");
+			bool isfine;
+			int count = 0;
+			foreach (HalfEdge e in he)
+			{
+				isfine = (e.next != null) && (e.prev != null) && (e.opposite != null);
+				if (!isfine)
+				{
+					Console.Out.WriteLine("Malformed halfedge found");
+					count++;
+				}
+			}
+				Console.Out.WriteLine(count + " malformed halfedges were found");
 		}
 
 		void walkBoundary(HalfEdge e)
