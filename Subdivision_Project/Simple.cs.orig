@@ -43,31 +43,21 @@ namespace Subdivision_Project
             Console.Out.Write("Contracting pairs...");
             timer.Restart();
             Console.Out.WriteLine();
-<<<<<<< HEAD
 			Pair p;
 			while (m.triangles.Count() > targetTris && validPairs.Count > 0)
             {
                 p = validPairs.First();
 				/*
-=======
-            while (m.triangles.Count() > targetTris && validPairs.Count > 0)
-            {
-                Pair p = new Pair(validPairs.First());
-                p.update();
-/*
->>>>>>> d237230e7e997db322cab73680d1cf68f8ce7d56
                 Console.Out.WriteLine("Now attempting to contract pair: (" + p.v1.n + ", " + p.v2.n + ")");
                 Console.Out.WriteLine("The pair is in validPairs: " + validPairs.Contains(p));
+ */
  */
                 validPairs.Remove(p);
 //                Console.Out.WriteLine("The pair is in validPairs: " + validPairs.Contains(p));
                 m = contract(m, p);
 				Console.Out.Write(validPairs.Count + "->");
                 validPairs = updateCosts(m, validPairs, p);
-<<<<<<< HEAD
 				Console.Out.WriteLine(validPairs.Count);
-=======
->>>>>>> d237230e7e997db322cab73680d1cf68f8ce7d56
 //              Console.Out.WriteLine("Contracted pair (" + p.v1.n + ", " + p.v2.n + ")");
             }
             timer.Stop();
@@ -146,7 +136,6 @@ namespace Subdivision_Project
                 {
                     // throw new Exception("A pair with the same vertices as the removed pair was found!");
                 }
-
                 else
                 {
                     newPair = new Pair(updatePair);
@@ -172,20 +161,14 @@ namespace Subdivision_Project
             HalfEdge firstEdge = p.v2.e;
             HalfEdge nextEdge = firstEdge;
 
-<<<<<<< HEAD
 			HashSet<HalfEdge> edges = p.v2.outgoing(); ;
 /*
             bool success;
             // TODO: This still loops forever on teapot
 
-			do
-=======
-            HashSet<HalfEdge> edges = new HashSet<HalfEdge>();
-
-            bool success;
             // TODO: This still loops forever on teapot
-            do
->>>>>>> d237230e7e997db322cab73680d1cf68f8ce7d56
+            // TODO: This still loops forever on teapot
+			do
             {
 //                Console.Out.WriteLine("First edge: " + firstEdge.vert.n + ", " + firstEdge.opposite.vert.n);
 //                Console.Out.WriteLine("Current edge: " + nextEdge.vert.n + ", " + nextEdge.opposite.vert.n);
@@ -194,16 +177,12 @@ namespace Subdivision_Project
             }
             while (success);
 
-<<<<<<< HEAD
 			HalfEdge oppExternEdge;
 			HalfEdge adjExternEdge;
 */	
 		
 			HalfEdge e1, e2;
 			foreach (HalfEdge e in edges)
-=======
-            foreach (HalfEdge e in edges)
->>>>>>> d237230e7e997db322cab73680d1cf68f8ce7d56
             {
                 // NOTE: If trying to understand this code, this half-edge implementation is a bit weird.
                 // Each vertex has a reference to an edge
@@ -211,10 +190,10 @@ namespace Subdivision_Project
                 // An edge's opposite has the same vertex as the edge's previous's vertex
                 // ^ (This part is weird. Treat prev as next and next as prev.)
 
-<<<<<<< HEAD
 
 				//outgoing edge to v1
 				if((e.vert == p.v1) || (e.opposite.vert == p.v1))
+                if (e.prev.opposite.vert == p.v1)
 				{
 					e1 = e.next.opposite;
 					e2 = e.prev.opposite;
@@ -231,11 +210,6 @@ namespace Subdivision_Project
 					e.opposite.vert = p.v1;
 				}
 				/*
-=======
-                HalfEdge oppExternEdge;
-                HalfEdge adjExternEdge;
-
->>>>>>> d237230e7e997db322cab73680d1cf68f8ce7d56
                 if (e.prev.opposite.vert == p.v1)
                 {
                     adjExternEdge = e.opposite;
@@ -254,17 +228,10 @@ namespace Subdivision_Project
                 {
                     adjExternEdge = e.next.opposite;
                     oppExternEdge = e.prev.opposite;
-<<<<<<< HEAD
 
                     adjExternEdge.vert = p.v1;
                     p.v1.e = adjExternEdge;
 
-=======
-
-                    adjExternEdge.vert = p.v1;
-                    p.v1.e = adjExternEdge;
-
->>>>>>> d237230e7e997db322cab73680d1cf68f8ce7d56
                     adjExternEdge.opposite = oppExternEdge;
                     oppExternEdge.opposite = adjExternEdge;
 
@@ -274,10 +241,7 @@ namespace Subdivision_Project
                 {
                     e.vert = p.v1;
                 }
-<<<<<<< HEAD
 				 */ 
-=======
->>>>>>> d237230e7e997db322cab73680d1cf68f8ce7d56
             }
 			var vec = new Vector3(0, 0, 0);
 			if (p.vbar == vec)
@@ -285,8 +249,6 @@ namespace Subdivision_Project
 			p.v1.pos = p.vbar;
 			p.v1.Q = p.Q;
 			m.vertices.Remove(p.v2);
-
-            m.vertices.Remove(p.v2);
 
             return m;
 		}

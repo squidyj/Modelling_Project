@@ -199,6 +199,7 @@ namespace Subdivision_Project
 				pos = v;
 			}
 
+
 			public override int GetHashCode()
 			{
 				return pos.GetHashCode();
@@ -291,9 +292,9 @@ namespace Subdivision_Project
 				if (n == 0)
 					if (!this.Equals(p))
 						if (v1 == p.v1)
-							return p.v2.pos.X.CompareTo(v2.pos.X);
+							return p.v2.n.CompareTo(v2.n);
 						else
-							return p.v1.pos.X.CompareTo(v1.pos.X);
+							return p.v1.n.CompareTo(v1.n);
 				return n;
 			}
 

@@ -51,12 +51,13 @@ namespace Subdivision_Project
                 Console.Out.WriteLine("Now attempting to contract pair: (" + p.v1.n + ", " + p.v2.n + ")");
                 Console.Out.WriteLine("The pair is in validPairs: " + validPairs.Contains(p));
  */
- */
-                validPairs.Remove(p);
+
+				Console.Out.Write(validPairs.Count + "->");
+				validPairs.Remove(p);
+				Console.Out.Write(validPairs.Count + "->");
 //                Console.Out.WriteLine("The pair is in validPairs: " + validPairs.Contains(p));
                 m = contract(m, p);
-				Console.Out.Write(validPairs.Count + "->");
-                validPairs = updateCosts(m, validPairs, p);
+				validPairs = updateCosts(m, validPairs, p);
 				Console.Out.WriteLine(validPairs.Count);
 //              Console.Out.WriteLine("Contracted pair (" + p.v1.n + ", " + p.v2.n + ")");
             }
@@ -192,7 +193,7 @@ namespace Subdivision_Project
 
 
 				//outgoing edge to v1
-				if((e.vert == p.v1) || (e.opposite.vert == p.v1))
+				if(e.vert == p.v1)
                 if (e.prev.opposite.vert == p.v1)
 				{
 					e1 = e.next.opposite;
@@ -200,6 +201,18 @@ namespace Subdivision_Project
 					
 					e1.opposite = e2;
 					e2.opposite = e1;
+
+					p.v1.e = e2;
+					e2.vert.e = e1;
+					m.triangles.Remove(e.face);
+				}
+				else if(e.opposite.vert == p.v1)
+				{
+					e1 = e.next.opposite;
+					e2 = e.prev.opposite;
+
+					e1.opposite = e1;
+					e2.opposite = e2;
 
 					p.v1.e = e2;
 					e2.vert.e = e1;
