@@ -143,7 +143,7 @@ namespace Subdivision_Project
 			void calcQ(Vector3 v)
 			{
 				float d = -(v.X * normal.X + v.Y * normal.Y + v.Z * normal.Z);
-				Vector4 row = new Vector4(v, d);
+				Vector4 row = new Vector4(normal, d);
 				Q = Mat4.quadric(row);
 			}
 
@@ -305,38 +305,7 @@ namespace Subdivision_Project
 
 			public void findVBar()
 			{
-                Vector3 midpoint = (v1.pos + v2.pos) * 0.5f;
-                vbar = midpoint;
-                calcCost();
 
-                Vector3 bestVbar = midpoint;
-                float lowestCost = cost;
-
-                vbar = v1.pos;
-                calcCost();
-
-                if (cost < lowestCost) 
-                {
-                    bestVbar = v1.pos; 
-                    lowestCost = cost;
-                }
-
-                vbar = v2.pos;
-                calcCost();
-
-                if (cost < lowestCost)
-                {
-                    bestVbar = v2.pos;
-                    lowestCost = cost;
-                }
-
-                vbar = bestVbar;
-                calcCost();
-
-                // TODO: Fix it
-
-                /*  This doesn't work yet for some reason
-                 * 
 				    Matrix4 qnot = new Matrix4();
 				    qnot.Row0 = Q.row1;
 				    qnot.Row1 = Q.row2;
@@ -346,7 +315,7 @@ namespace Subdivision_Project
 				//doesnt seem to happen in practice
 				    qnot.Invert();
 				    vbar = new Vector3(qnot.Column3);
-                */
+
 			}
 
 			public void calcCost()

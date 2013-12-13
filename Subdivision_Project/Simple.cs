@@ -52,13 +52,13 @@ namespace Subdivision_Project
                 Console.Out.WriteLine("The pair is in validPairs: " + validPairs.Contains(p));
  */
 
-				Console.Out.Write(validPairs.Count + "->");
+//				Console.Out.Write(validPairs.Count + "->");
 				validPairs.Remove(p);
-				Console.Out.Write(validPairs.Count + "->");
+//				Console.Out.Write(validPairs.Count + "->");
 //                Console.Out.WriteLine("The pair is in validPairs: " + validPairs.Contains(p));
                 m = contract(m, p);
 				validPairs = updateCosts(m, validPairs, p);
-				Console.Out.WriteLine(validPairs.Count);
+//				Console.Out.WriteLine(validPairs.Count);
 //              Console.Out.WriteLine("Contracted pair (" + p.v1.n + ", " + p.v2.n + ")");
             }
             timer.Stop();
@@ -156,8 +156,6 @@ namespace Subdivision_Project
 			//every edge to p.v2 must become an edge to p.v1
 			//delete all degenerate triangles
 
-            Console.Out.WriteLine("Pair: (" + p.v1.n + ", " + p.v2.n + ")");
-
             HashSet<HalfEdge> edges = p.v2.outgoing();
 
             HalfEdge adjExtEdge, oppExtEdge;
@@ -200,6 +198,11 @@ namespace Subdivision_Project
                 }
             }
             m.vertices.Remove(p.v2);
+            p.v1.pos = p.vbar;
+
+            // I don't think this one is right...
+            p.v1.Q = p.Q;
+
             return m;
 /*            
             HalfEdge firstEdge = p.v2.e;
