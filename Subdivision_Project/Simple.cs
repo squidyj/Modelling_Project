@@ -167,6 +167,7 @@ namespace Subdivision_Project
             // TODO: This still loops forever on teapot
 
             // TODO: This still loops forever on teapot
+            // TODO: This still loops forever on teapot
 			do
             {
 //                Console.Out.WriteLine("First edge: " + firstEdge.vert.n + ", " + firstEdge.opposite.vert.n);
