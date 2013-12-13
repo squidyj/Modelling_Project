@@ -13,15 +13,8 @@ namespace Subdivision_Project
 		public static Mesh subdivide(Mesh m)
 		{
 		
-			List<DrawTriangle> mTriangles = new List<DrawTriangle>();
-			List<DrawVertex> mVerts = m.Vertices.ToList();
-			Dictionary<DrawVertex, int> lookup = new Dictionary<DrawVertex, int>();
-			int off = m.Vertices.Length;
-			int v0, v1, v2;
-
-			//begin by updating adjacency data for all vertices
-			//ideally this would be maintained with each modification to the mesh
-			//for each face in the mesh
+			//begin by creating all the new edge vertices and maintaining the halfedge structure
+		
 			DrawTriangle t;
 			for (int i = 0; i < m.Triangles.Length; i++)
 			{

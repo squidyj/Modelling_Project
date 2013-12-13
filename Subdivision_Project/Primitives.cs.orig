@@ -286,18 +286,6 @@ namespace Subdivision_Project
 
 			public void findVBar()
 			{
-<<<<<<< HEAD
-				//make our mat4 into a matrix4 to avoid having to implement an invert function
-				Matrix4 qnot = new Matrix4();
-				qnot.Row0 = Q.row1;
-				qnot.Row1 = Q.row2;
-				qnot.Row2 = Q.row3;
-				qnot.Row3 = new Vector4(0, 0, 0, 1);
-				//this can throw an exception in the case where the matrix is not invertible
-				//doesnt seem to happen in practice
-				qnot.Invert();
-				vbar = new Vector3(qnot.Column3);
-=======
                 Vector3 midpoint = (v1.pos + v2.pos) / 2;
                 vbar = midpoint;
                 calcCost();
@@ -335,10 +323,14 @@ namespace Subdivision_Project
 				    qnot.Row1 = Q.row2;
 				    qnot.Row2 = Q.row3;
 				    qnot.Row3 = new Vector4(0, 0, 0, 1);
+<<<<<<< HEAD
+				//this can throw an exception in the case where the matrix is not invertible
+				//doesnt seem to happen in practice
+=======
+>>>>>>> d82a523823aa204f70e3df8c0e44dafa134e99f2
 				    qnot.Invert();
 				    vbar = new Vector3(qnot.Column3);
                 */
->>>>>>> d82a523823aa204f70e3df8c0e44dafa134e99f2
 			}
 
 			public void calcCost()

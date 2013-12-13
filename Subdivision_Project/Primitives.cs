@@ -211,16 +211,28 @@ namespace Subdivision_Project
 
 			public HashSet<Triangle> adjacentFaces()
 			{
-				HashSet<Triangle> temp = new HashSet<Triangle>();
+				var temp = new HashSet<Triangle>();
  				HalfEdge e0 = e;
 				do{
 					temp.Add(e0.face);
-					e0 = e0.next.opposite;
+					e0 = e0.opposite.next;
 				}while(e0 != e);
 				temp.Remove(null);
 				return temp;
 			}
-			
+
+			public HashSet<HalfEdge> outgoing()
+			{
+				var temp = new HashSet<HalfEdge>();
+				HalfEdge e0 = e;
+				do
+				{
+					temp.Add(e0);
+					e0 = e0.opposite.next;
+				} while (e0 != e);
+				temp.Remove(null);
+				return temp;
+			}
 			//should probably be cached
 			//inefficient to calculate 
 			public bool boundary()
@@ -231,7 +243,7 @@ namespace Subdivision_Project
 				do{
 					if(e0.face == null)
 						return true;
-					e0 = e0.next.opposite;
+					e0 = e0.opposite.next;
 				}while(e0 != e);
 				return false;
 			}
@@ -242,7 +254,7 @@ namespace Subdivision_Project
  				HalfEdge e0 = e.opposite;
 				do{
 					temp.Add(e0.vert);
-					e0 = e0.prev.opposite;
+					e0 = e0.next.opposite;
 				}while(e0 != e);
 				return temp;
 			}
@@ -257,6 +269,9 @@ namespace Subdivision_Project
 
 			public Pair(Vertex v1, Vertex v2)
 			{ this.v1 = v1; this.v2 = v2; }
+
+            public Pair(Pair p)
+            { this.v1 = p.v1; this.v2 = p.v2; }
 
 			public void update()
 			{
@@ -273,9 +288,12 @@ namespace Subdivision_Project
 			public int CompareTo(Pair p)
 			{
 				int n = cost.CompareTo(p.cost);
- 				if(n == 0)
-					if(!this.Equals(p))
-						return -1;
+				if (n == 0)
+					if (!this.Equals(p))
+						if (v1 == p.v1)
+							return p.v2.pos.X.CompareTo(v2.pos.X);
+						else
+							return p.v1.pos.X.CompareTo(v1.pos.X);
 				return n;
 			}
 
@@ -286,7 +304,7 @@ namespace Subdivision_Project
 
 			public void findVBar()
 			{
-                Vector3 midpoint = (v1.pos + v2.pos) / 2;
+                Vector3 midpoint = (v1.pos + v2.pos) * 0.5f;
                 vbar = midpoint;
                 calcCost();
 
@@ -334,7 +352,7 @@ namespace Subdivision_Project
 			{
 				var v = new Vector4(vbar, 1);
 				var v1 = v * Q;
-				cost = Vector4.Dot(v, v1);
+				cost = Vector4.Dot(v1, v);
 			}				
 		}
 

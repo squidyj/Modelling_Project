@@ -178,9 +178,9 @@ namespace Subdivision_Project
 
 				//set the halfedge that each vertex points to
 				//later assignments override earlier ones but that is fine
-				vertices[dt.v0].e = e2;
-				vertices[dt.v1].e = e0;
-				vertices[dt.v2].e = e1;
+				vertices[dt.v0].e = e0;
+				vertices[dt.v1].e = e1;
+				vertices[dt.v2].e = e2;
 
 				//set the the halfedge that the triangle points to
 				t.e = e2;
