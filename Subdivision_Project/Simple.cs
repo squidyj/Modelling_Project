@@ -110,8 +110,6 @@ namespace Subdivision_Project
         // TODO: Complete this        
         public static SortedSet<Pair> updateCosts(Mesh m, SortedSet<Pair> validPairs, Pair p)
         {
-            SortedSet<Pair> updatedPairs = new SortedSet<Pair>();
-            Pair newPair;
 			bool modified;
 			var pairs = validPairs.ToList();
 			for(int i = 0; i < pairs.Count; i++)
@@ -158,12 +156,57 @@ namespace Subdivision_Project
 			//every edge to p.v2 must become an edge to p.v1
 			//delete all degenerate triangles
 
-            
+            Console.Out.WriteLine("Pair: (" + p.v1.n + ", " + p.v2.n + ")");
+
+            HashSet<HalfEdge> edges = p.v2.outgoing();
+
+            HalfEdge adjExtEdge, oppExtEdge;
+
+            foreach (HalfEdge outgoing in edges)
+            {
+                if (outgoing.vert == p.v1)
+                {
+                    adjExtEdge = outgoing.prev.opposite;
+                    oppExtEdge = outgoing.next.opposite;
+
+                    // Make sure none of the remaining vertices are linked to internal edges
+                    p.v1.e = adjExtEdge;
+                    adjExtEdge.vert.e = oppExtEdge;
+
+                    adjExtEdge.opposite = oppExtEdge;
+                    oppExtEdge.opposite = adjExtEdge;
+
+                    m.triangles.Remove(outgoing.face);
+                }
+                else if (outgoing.next.vert == p.v1)
+                {
+                    adjExtEdge = outgoing.opposite;
+                    oppExtEdge = outgoing.next.opposite;
+
+                    adjExtEdge.vert = p.v1;
+
+                    // Make sure none of the remaining vertices are linked to internal edges
+                    p.v1.e = oppExtEdge;
+                    oppExtEdge.vert.e = adjExtEdge;
+
+                    adjExtEdge.opposite = oppExtEdge;
+                    oppExtEdge.opposite = adjExtEdge;
+
+                    m.triangles.Remove(outgoing.face);
+                }
+                else 
+                {
+                    outgoing.prev.vert = p.v1;
+                }
+            }
+            m.vertices.Remove(p.v2);
+            return m;
+/*            
             HalfEdge firstEdge = p.v2.e;
             HalfEdge nextEdge = firstEdge;
 
-			HashSet<HalfEdge> edges = p.v2.outgoing(); ;
-/*
+			HashSet<HalfEdge> edges = p.v2.outgoing();
+
             bool success;
             // TODO: This still loops forever on teapot
 
@@ -180,7 +223,7 @@ namespace Subdivision_Project
 
 			HalfEdge oppExternEdge;
 			HalfEdge adjExternEdge;
-*/	
+	
 		
 			HalfEdge e1, e2;
 			foreach (HalfEdge e in edges)
@@ -254,16 +297,15 @@ namespace Subdivision_Project
                 {
                     e.vert = p.v1;
                 }
-				 */ 
+				 
             }
 			var vec = new Vector3(0, 0, 0);
 			if (p.vbar == vec)
 				Console.Out.WriteLine("Fuck");
 			p.v1.pos = p.vbar;
 			p.v1.Q = p.Q;
-			m.vertices.Remove(p.v2);
 
-            return m;
+        */
 		}
 	}
 }
