@@ -13,7 +13,7 @@ namespace Subdivision_Project
 {
 	class Simple
 	{
-		public static Mesh simplify(Mesh m, int targetTris, float threshold)
+		public static Mesh simplify(Mesh m, int targetTris)
 		{
             Stopwatch timer = new Stopwatch();
             int numOfTris = m.triangles.Count();
@@ -25,6 +25,16 @@ namespace Subdivision_Project
             timer.Restart();
 			foreach (Pair p1 in m.edges)
 				p1.update();
+
+            Pair oddPair = new Pair(m.vertices[0], m.vertices[0]);
+
+            foreach (Pair p2 in m.edges)
+            {
+                if (p2.v1.n == 2396 && p2.v2.n == 767)
+                {
+                    oddPair = p2;
+                }
+            }
 
 			SortedSet<Pair> validPairs = new SortedSet<Pair>(m.edges);
 
@@ -63,11 +73,12 @@ namespace Subdivision_Project
 
                 m = contract(m, p);
 
-				validPairs = updateCosts(m, validPairs, p, counter);
+				validPairs = updateCosts(m, validPairs, p);
 
 //				Console.Out.WriteLine(validPairs.Count);
 //              Console.Out.WriteLine("Contracted pair (" + p.v1.n + ", " + p.v2.n + ")");
 
+                Debug.Assert(p.v1 != oddPair.v1 && p.v2 != oddPair.v1 && p.v1 != oddPair.v2 && p.v2 != oddPair.v2);
             }
             timer.Stop();
             Console.Out.WriteLine(timer.ElapsedMilliseconds + "ms");
@@ -82,7 +93,7 @@ namespace Subdivision_Project
 			return m;
 		}
   
-        public static SortedSet<Pair> updateCosts(Mesh m, SortedSet<Pair> validPairs, Pair p, int counter)
+        public static SortedSet<Pair> updateCosts(Mesh m, SortedSet<Pair> validPairs, Pair p)
         {
 			bool modified;
 			var pairs = validPairs.ToList();
@@ -137,8 +148,6 @@ namespace Subdivision_Project
                     adjExtEdge = outgoing.opposite;
                     oppExtEdge = outgoing.next.opposite;
 
-                    adjExtEdge.vert = p.v1;
-
                     // Make sure none of the remaining vertices are linked to internal edges
                     p.v1.e = oppExtEdge;
                     oppExtEdge.vert.e = adjExtEdge;
@@ -148,11 +157,12 @@ namespace Subdivision_Project
 
                     m.triangles.Remove(outgoing.face);
                 }
-                else 
+                else
                 {
                     outgoing.prev.vert = p.v1;
                 }
             }
+
             m.vertices.Remove(p.v2);
             p.v1.pos = p.vbar;
 

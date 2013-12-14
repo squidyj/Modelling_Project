@@ -298,7 +298,7 @@ namespace Subdivision_Project
 
         private void button2_Click(object sender, EventArgs e)
         {
-			activeModel.simplify((int)numTrisPicker.Value, (float)thresholdPicker.Value);
+			activeModel.simplify((int)numTrisPicker.Value);
 			glControl1.Invalidate();
 		}
 
