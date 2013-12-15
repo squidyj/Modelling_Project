@@ -26,8 +26,8 @@ namespace Subdivision_Project
 		Vector3 badPoint = new Vector3(55, 55, 55);
 		bool mousedown = false;
 		Vector3 oldPoint;
-		Vector2 Scale = new Vector2();
-		Vector3 origin = new Vector3(0, 0, -3);
+		Vector2 resolution = new Vector2();
+		Vector3 origin = new Vector3(0, 0, 3);
 		Matrix4 track = Matrix4.Identity;
 		Model activeModel;
 
@@ -54,7 +54,7 @@ namespace Subdivision_Project
 			var glVersion = GL.GetString(StringName.Version);
 			int major = int.Parse(glVersion[0].ToString());
 			int minor = int.Parse(glVersion[2].ToString());
-			Console.Out.WriteLine("OpenGL major version " + major + ", minor version " + minor + ".") ;
+			textBox1.AppendText("OpenGL major version " + major + ", minor version " + minor + ".\n");
 
 			models = new List<Model>();
 			fov = 60f * ((float) Math.PI / 180f);
@@ -62,17 +62,15 @@ namespace Subdivision_Project
 			getMatrixLocations();
 			setProjection();
 			setView();
-			Scale.X = (float)glControl1.ClientRectangle.Width;
-			Scale.Y = (float)glControl1.ClientRectangle.Height;
-			GL.Uniform2(sLoc, Scale);
+			resolution.X = (float)glControl1.ClientRectangle.Width;
+			resolution.Y = (float)glControl1.ClientRectangle.Height;
+			GL.Uniform2(sLoc, resolution);
 			GL.Uniform1(modeLocation, mode);
 			
 			Vector3 v1 = new Vector3(0, 0.5f, 0);
 			Vector3 v2 = new Vector3(0, 0.5f, 0);
 			Vertex a2 = new Vertex(v2);
-			Vertex a1 = new Vertex(v1);
-			Console.Out.WriteLine(a1.Equals(a2));
-			
+			Vertex a1 = new Vertex(v1);			
 		}
 
 		private void setProjection()
@@ -86,11 +84,10 @@ namespace Subdivision_Project
 		{
 			GL.Viewport(glControl1.ClientRectangle);
 			setProjection();
-			Scale.X = (float)glControl1.ClientRectangle.Width;
-			Scale.Y = (float)glControl1.ClientRectangle.Height;
-			GL.Uniform2(sLoc, Scale);
+			resolution.X = (float)glControl1.ClientRectangle.Width;
+			resolution.Y = (float)glControl1.ClientRectangle.Height;
+			GL.Uniform2(sLoc, resolution);
 			glControl1.Invalidate();
-			Console.Out.WriteLine(Scale);
 		}
 
 		private void getMatrixLocations()
@@ -161,17 +158,17 @@ namespace Subdivision_Project
 
 			//add the shaders to the program
 			GL.AttachShader(program, vs);
-			Console.WriteLine(GL.GetShaderInfoLog(vs));
+			textBox1.AppendText(GL.GetShaderInfoLog(vs) + "\n");
 
 			GL.AttachShader(program, fs);
-			Console.WriteLine(GL.GetShaderInfoLog(fs));
+			textBox1.AppendText(GL.GetShaderInfoLog(fs) + "\n");
 
 			GL.AttachShader(program, gs);
-			Console.WriteLine(GL.GetShaderInfoLog(gs));
+			textBox1.AppendText(GL.GetShaderInfoLog(gs) + "\n");
 
 			//link our program together
 			GL.LinkProgram(program);
-			Console.WriteLine(GL.GetProgramInfoLog(program));
+			textBox1.AppendText(GL.GetProgramInfoLog(program) + "\n");
 
 			//tell opengl to use our shader program when rendering
 			GL.UseProgram(program);
@@ -199,7 +196,7 @@ namespace Subdivision_Project
 			open.FilterIndex = 1;
 			if (open.ShowDialog() != DialogResult.OK)
 				return;
-			Model m = new Model(open.FileName);
+			Model m = new Model(open.FileName, this);
 			models.Add(m);
 			activeModel = m;
 			setView(target: new Vector3(0, 0, 0)); 

@@ -13,19 +13,21 @@ namespace Subdivision_Project
 {
 	class Simple
 	{
-		public static Mesh simplify(Mesh m, int targetTris)
+		public static Mesh simplify(Mesh m, int targetTris, Form1 f)
 		{
             Stopwatch timer = new Stopwatch();
+			Stopwatch overall = new Stopwatch();
+			overall.Start();
             int numOfTris = m.triangles.Count();
-
-            Console.Out.WriteLine("Now simplifying to at most " + targetTris + " triangles");
+			f.textBox1.Clear();
+			f.textBox1.Text = "Now simplifying to at most " + targetTris + " triangles\n";
 
 			//then the valid pairs
-            Console.Out.Write("Finding valid pairs...");
+			f.textBox1.AppendText("Updating edge costs...");
             timer.Restart();
 			foreach (Pair p1 in m.edges)
 				p1.update();
-
+			f.textBox1.AppendText(" done, in " + timer.ElapsedMilliseconds + "ms\n");
             Pair oddPair = new Pair(m.vertices[0], m.vertices[0]);
 
             foreach (Pair p2 in m.edges)
@@ -35,22 +37,11 @@ namespace Subdivision_Project
                     oddPair = p2;
                 }
             }
-
 			SortedSet<Pair> validPairs = new SortedSet<Pair>(m.edges);
-
-            timer.Stop();
-
-			Console.Out.WriteLine(timer.ElapsedMilliseconds + "ms");
-
-            //then the costs for each contraction
-            Console.Out.Write("Calculating costs...");
-            timer.Restart();
-            timer.Stop();
-            Console.Out.WriteLine(timer.ElapsedMilliseconds + "ms");
 
 			//loop until enough triangles have been removed 
 			//contract the lowest cost pair and remove it from the heap
-            Console.Out.Write("Contracting pairs...");
+			f.textBox1.AppendText("Contracting pairs...");
             timer.Restart();
 			Pair p;
 
@@ -81,15 +72,21 @@ namespace Subdivision_Project
 //                Debug.Assert(p.v1 != oddPair.v1 && p.v2 != oddPair.v1 && p.v1 != oddPair.v2 && p.v2 != oddPair.v2);
             }
             timer.Stop();
-            Console.Out.WriteLine(timer.ElapsedMilliseconds + "ms");
+			f.textBox1.AppendText(" done, in " + timer.ElapsedMilliseconds + "ms\n");
 
 			//update the valid pairs to point to the newly created vertex where applicable
 			//update the costs of those valid pairs
 
             m.reconstruct();
 
-            Console.Out.WriteLine("Simplified mesh from " + numOfTris + " triangles to " + m.triangles.Count() + " triangles!");
-
+			f.textBox1.AppendText("Simplified mesh from " + numOfTris + " triangles to " + m.triangles.Count() + " triangles!\n");
+			long elapsed = overall.ElapsedMilliseconds;
+			if (elapsed >= 1000)
+			{
+				f.textBox1.AppendText("Simplification took " + (float)elapsed / 1000.0f + " seconds\n");
+			}
+			else
+				f.textBox1.AppendText("Simplification took " + elapsed + "ms\n");
 			return m;
 		}
   

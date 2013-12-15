@@ -15,7 +15,7 @@ namespace Subdivision_Project
 	{
 		//vertex attribute object, vertex buffer object, and index buffer object locations
 		int vao, vbo, ibo;
-
+		Form1 own;
 		Material mat;
 		//rename to adjacentVertices
 	
@@ -38,55 +38,31 @@ namespace Subdivision_Project
 		public List<Triangle> triangles = new List<Triangle>();
 		public HashSet<Pair> edges;
 
-		public Mesh(string pathname)
+		public Mesh(string pathname, Form1 f)
 		{
 			//load the model data from file
 			//TODO change objloader to work with mesh type object
 
-			
+			own = f;
 			Stopwatch overall = new Stopwatch();
 			overall.Start();
 			Stopwatch timer = new Stopwatch();
 			ObjLoader.Load(this, pathname);
 			//sweep redundant triangles
-			timer.Restart();
-			Console.Out.WriteLine("Checking Mesh for duplicate triangles");
-			cleanMesh();
-			Console.Out.WriteLine("Check complete, took " + timer.ElapsedMilliseconds + " milliseconds");
-
-			timer.Restart();
-			Console.Out.WriteLine("Calculating bounding box");
+			cleanMesh();		
 			box = new BoundingBox(this);
-			Console.Out.WriteLine("Bounding box complete, took " + timer.ElapsedMilliseconds + " milliseconds");
-
+			
 			timer.Restart();
-			Console.Out.WriteLine("Initializing Half-Edge Structure");
 			initHalfEdge();
-			Console.Out.WriteLine("Half-Edge complete, took " + timer.ElapsedMilliseconds + " milliseconds");
+			own.textBox1.Clear();
+			own.textBox1.Text = "Half-Edge initalized in " + timer.ElapsedMilliseconds + " milliseconds.\n\n";
 
 			setVerts();
 			reset();
 			firstLoad();
-			Console.Out.WriteLine("Model took " + overall.ElapsedMilliseconds + " milliseconds to load");
-			Console.Out.WriteLine("Vertices: " + drawvertices.Length);
-			Console.Out.WriteLine("Faces: " + drawtriangles.Length);
-			Console.Out.WriteLine("Testing");
-
-			SortedSet<Pair> pairs = new SortedSet<Pair>();
-			Pair p1 = new Pair(vertices[0], vertices[1]);
-			p1.cost = 0.5f;
-			Pair p2 = new Pair(vertices[0], vertices[1]);
-			p2.cost = 0.6f;
-			Pair p3 = new Pair(vertices[1], vertices[2]);
-			p3.cost = 0.5f;
-			Pair p4 = new Pair(vertices[0], vertices[1]);
-			p4.cost = 0.5f;
-
-			pairs.Add(p1);
-			Console.Out.WriteLine(pairs.Contains(p2));
-			Console.Out.WriteLine(pairs.Contains(p3));
-			Console.Out.WriteLine(pairs.Contains(p4));
-
+			own.textBox1.AppendText("Model took " + overall.ElapsedMilliseconds + " milliseconds to load\n");
+			own.textBox1.AppendText("Vertices: " + drawvertices.Length + "\n");
+			own.textBox1.AppendText("Faces: " + drawtriangles.Length + "\n");
 		}
 
 		public Mesh(DrawVertex[] verts, DrawTriangle[] tris, BoundingBox b)
@@ -163,7 +139,6 @@ namespace Subdivision_Project
 			HalfEdge e0, e1, e2, opp;
 			Triangle t;
 			Stopwatch timer = new Stopwatch();
-			Console.Out.WriteLine("Processing Interior HalfEdges");
 			timer.Start();
 			foreach (DrawTriangle dt in drawtriangles)
 			{
@@ -231,10 +206,8 @@ namespace Subdivision_Project
 				he.Add(e0); he.Add(e1); he.Add(e2);
 			}
 
-			Console.Out.WriteLine("Interior HalfEdges complete, took " + timer.ElapsedMilliseconds + " milliseconds");
 			timer.Restart();				
 			//for all of the halfedges that have no opposite currently
-			Console.Out.WriteLine("Processing Exterior HalfEdges");
 			foreach (HalfEdge e in lookup.Values)
 			{
 				if (e.opposite != null)
@@ -245,7 +218,6 @@ namespace Subdivision_Project
 				e.vert.e = e0;
 				walkBoundary(e0);
 			}
-			Console.Out.WriteLine("Exterior HalfEdges complete, took " + timer.ElapsedMilliseconds + " milliseconds");
 		}
 
 		void walkBoundary(HalfEdge e)
