@@ -106,19 +106,12 @@ namespace Subdivision_Project
 			public HalfEdge opposite;
 			public Triangle face;
 			public Vertex vert;
+			public Pair edge;
 
 			public HalfEdge(Vertex v, Triangle t)
 			{
 				face = t; vert = v;
 			}
-			public Pair edge
-			{
-				get
-				{
-					return new Pair(vert, prev.vert);
-				}
-			}
-
 
 		}
 
@@ -180,7 +173,7 @@ namespace Subdivision_Project
 			public int n;
 			public Vector3 pos;
 			public Mat4 Q = new Mat4();
-
+			public HashSet<Pair> pairs = new HashSet<Pair>();
 			public Vertex(DrawVertex v)
 			{
 				pos = v.pos;
@@ -345,11 +338,9 @@ namespace Subdivision_Project
 		[StructLayout(LayoutKind.Sequential)]
 		public struct DrawVertex
 		{
-			public DrawVertex(Vector3 v) { pos = v; v1 = new Vector3(); v2 = new Vector3(); }
+			public DrawVertex(Vector3 v) { pos = v; }
 			//doesn't assign halfedge
 			public Vector3 pos;
-			public Vector3 v1;
-			public Vector3 v2;
 		}
 
 		[StructLayout(LayoutKind.Sequential)]

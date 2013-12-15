@@ -98,10 +98,6 @@ namespace Subdivision_Project
 				d = new DrawTriangle(v[0].n, v[1].n, v[2].n);
 				d.normal = t.normal;
 				dt.Add(d);
-
-				//adding opposite vertices of the triangle as attributes of a vertex
-				//used for wirefram shader and higher quality normal than gradient method
-
 			}
 			drawtriangles = dt.ToArray();
 		}
@@ -138,6 +134,7 @@ namespace Subdivision_Project
 			edges = new HashSet<Pair>();
 			HalfEdge e0, e1, e2, opp;
 			Triangle t;
+			Pair p;
 			Stopwatch timer = new Stopwatch();
 			timer.Start();
 			foreach (DrawTriangle dt in drawtriangles)
@@ -168,6 +165,13 @@ namespace Subdivision_Project
 				e0.next = e1; e1.next = e2; e2.next = e0;
 				e0.prev = e2; e2.prev = e1; e1.prev = e0;
 
+				e0.edge = new Pair(e0.vert, e0.prev.vert);
+				e1.edge = new Pair(e1.vert, e1.prev.vert);
+				e2.edge = new Pair(e2.vert, e2.prev.vert);
+
+				e0.vert.pairs.Add(e0.edge); e0.prev.vert.pairs.Add(e0.edge);
+				e1.vert.pairs.Add(e1.edge); e1.prev.vert.pairs.Add(e1.edge);
+				e2.vert.pairs.Add(e2.edge); e2.prev.vert.pairs.Add(e2.edge);
 				//find the opposite halfedge for each halfedge if it exists
 				//if it isnt created yet then add these halfedges to the dictionary for later retrieval
 				if (lookup.TryGetValue(e1.edge, out opp))
@@ -329,13 +333,6 @@ breakout:
 			GL.EnableVertexAttribArray(0);
 			GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, vertSize, 0);
 
-			//position of second vertex in triangle
-			GL.EnableVertexAttribArray(1);
-			GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, vertSize, vecSize);
-
-			//position of third vertex in triangle
-			GL.EnableVertexAttribArray(2);
-			GL.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, vertSize, 2 * vecSize);
 
 			//state is set, unbind objects so they are not modified.
 			GL.BindVertexArray(0);

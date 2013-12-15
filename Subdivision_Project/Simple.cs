@@ -92,26 +92,30 @@ namespace Subdivision_Project
   
         public static SortedSet<Pair> updateCosts(Mesh m, SortedSet<Pair> validPairs, Pair p)
         {
-			bool modified;
-			var pairs = validPairs.ToList();
-
-			for(int i = 0; i < pairs.Count; i++)
+			List<Pair> updated = new List<Pair>(p.v1.pairs.Union(p.v2.pairs));
+			List<int> removal = new List<int>();
+			Pair p0;
+			for(int i = 0; i < updated.Count; i++)
 			{
-				modified = false;
-                if (pairs[i].v1 == p.v2) { validPairs.Remove(pairs[i]); pairs[i].v1 = p.v1; modified = true; }
-                if (pairs[i].v2 == p.v2) { validPairs.Remove(pairs[i]); pairs[i].v2 = p.v1; modified = true; }
-				if(modified)
+				p0 = updated[i];
+				validPairs.Remove(p0);
+				if(p0.v1 == p.v2)
+					p0.v1 = p.v1;
+				if(p0.v2 == p.v2)
+					p0.v2 = p.v1;
+				if (p0.v1 != p0.v2)
 				{
-					if(pairs[i].v1 != pairs[i].v2)
-					{
-						pairs[i].update();
-						validPairs.Add(pairs[i]);
-					}
+					p0.update();
+					validPairs.Add(p0);
 				}
+				else
+					removal.Add(i);
 			}
-
-            return validPairs;
-        }
+			for (int i = removal.Count - 1; i >= 0; i--)
+				updated.RemoveAt(removal[i]);
+			p.v1.pairs = new HashSet<Pair>(updated);
+			return validPairs;
+		}
 
 		// TODO: Make sure to check logic! This one is prone to errors!
 		public static Mesh contract(Mesh m, Pair p)
@@ -159,7 +163,7 @@ namespace Subdivision_Project
                     outgoing.prev.vert = p.v1;
                 }
             }
-
+			Console.Out.WriteLine(p.v1.pos);
  //           m.vertices.Remove(p.v2);
             p.v1.pos = p.vbar;
 

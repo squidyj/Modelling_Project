@@ -46,9 +46,8 @@ namespace Subdivision_Project
 		private void gl_load(object sender, EventArgs e)
 		{
 			//Get OpenGL version
-			GL.ClearColor(Color.Bisque);
+			GL.ClearColor(0.075f, 0.1f, 0.1f, 1.0f);
 			GL.Enable(EnableCap.DepthTest);
-			GL.Enable(EnableCap.CullFace);
 			GL.FrontFace(FrontFaceDirection.Ccw);
 			
 			var glVersion = GL.GetString(StringName.Version);
