@@ -345,9 +345,11 @@ namespace Subdivision_Project
 		[StructLayout(LayoutKind.Sequential)]
 		public struct DrawVertex
 		{
-			public DrawVertex(Vector3 v) { pos = v; }
+			public DrawVertex(Vector3 v) { pos = v; v1 = new Vector3(); v2 = new Vector3(); }
 			//doesn't assign halfedge
 			public Vector3 pos;
+			public Vector3 v1;
+			public Vector3 v2;
 		}
 
 		[StructLayout(LayoutKind.Sequential)]

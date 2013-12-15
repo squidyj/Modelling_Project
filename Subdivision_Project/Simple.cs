@@ -78,7 +78,7 @@ namespace Subdivision_Project
 //				Console.Out.WriteLine(validPairs.Count);
 //              Console.Out.WriteLine("Contracted pair (" + p.v1.n + ", " + p.v2.n + ")");
 
-                Debug.Assert(p.v1 != oddPair.v1 && p.v2 != oddPair.v1 && p.v1 != oddPair.v2 && p.v2 != oddPair.v2);
+//                Debug.Assert(p.v1 != oddPair.v1 && p.v2 != oddPair.v1 && p.v1 != oddPair.v2 && p.v2 != oddPair.v2);
             }
             timer.Stop();
             Console.Out.WriteLine(timer.ElapsedMilliseconds + "ms");
@@ -163,7 +163,7 @@ namespace Subdivision_Project
                 }
             }
 
-            m.vertices.Remove(p.v2);
+ //           m.vertices.Remove(p.v2);
             p.v1.pos = p.vbar;
 
             p.v1.Q = p.Q;

@@ -122,6 +122,10 @@ namespace Subdivision_Project
 				d = new DrawTriangle(v[0].n, v[1].n, v[2].n);
 				d.normal = t.normal;
 				dt.Add(d);
+
+				//adding opposite vertices of the triangle as attributes of a vertex
+				//used for wirefram shader and higher quality normal than gradient method
+
 			}
 			drawtriangles = dt.ToArray();
 		}
@@ -230,7 +234,7 @@ namespace Subdivision_Project
 			Console.Out.WriteLine("Interior HalfEdges complete, took " + timer.ElapsedMilliseconds + " milliseconds");
 			timer.Restart();				
 			//for all of the halfedges that have no opposite currently
-			Console.Out.WriteLine("Processing Interior HalfEdges");
+			Console.Out.WriteLine("Processing Exterior HalfEdges");
 			foreach (HalfEdge e in lookup.Values)
 			{
 				if (e.opposite != null)
@@ -242,18 +246,6 @@ namespace Subdivision_Project
 				walkBoundary(e0);
 			}
 			Console.Out.WriteLine("Exterior HalfEdges complete, took " + timer.ElapsedMilliseconds + " milliseconds");
-			bool isfine;
-			int count = 0;
-			foreach (HalfEdge e in he)
-			{
-				isfine = (e.next != null) && (e.prev != null) && (e.opposite != null);
-				if (!isfine)
-				{
-					Console.Out.WriteLine("Malformed halfedge found");
-					count++;
-				}
-			}
-				Console.Out.WriteLine(count + " malformed halfedges were found");
 		}
 
 		void walkBoundary(HalfEdge e)
@@ -263,23 +255,30 @@ namespace Subdivision_Project
 			e2 = e3 = e;
 			do
 			{
+				//walk the 'spokes' of the vertex to find the next halfedge that is opposite the boundary
 				while (e2.opposite != null)
-					if (e2.opposite.prev == null)
-						goto broken;
+					//condition for closing out the boundary
+					if (e2.opposite == e)
+						goto breakout;
 					else
 						e2 = e2.opposite.prev;
+				//if somehow we're at a defined halfedge that is boundary, we should leave
 				if (e2.face == null)
 					return;
-				//if we wind up on a defined portion of the boundary
+				//our new boundary halfedge
 				e1 = new HalfEdge(e2.prev.vert, null);
 				e2.vert.e = e1;
+				//set opposites
 				e2.opposite = e1;
 				e1.opposite = e2;
+				//set next and previous from the last boundary we assigned
 				e3.next = e1;
 				e1.prev = e3;
+				//move up one halfedge and start looking for the next
 				e3 = e2 = e1;
 			} while (true);
-broken:
+breakout:
+			//close the boundary
 			e2.opposite.prev = e3;
 			e3.next = e2.opposite;
 		}
@@ -354,16 +353,18 @@ broken:
 			GL.BindBuffer(BufferTarget.ElementArrayBuffer, ibo);
 			GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(triSize * drawtriangles.Length), drawtriangles, BufferUsageHint.StaticDraw);
 
+			//position of target vertex
 			GL.EnableVertexAttribArray(0);
 			GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, vertSize, 0);
 
-			/*
+			//position of second vertex in triangle
 			GL.EnableVertexAttribArray(1);
-			GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, true, vertSize, vecSize);
+			GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, vertSize, vecSize);
 
+			//position of third vertex in triangle
 			GL.EnableVertexAttribArray(2);
-			GL.VertexAttribPointer(2, 2, VertexAttribPointerType.Float, false, vertSize, 2 * vecSize);
-			*/
+			GL.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, vertSize, 2 * vecSize);
+
 			//state is set, unbind objects so they are not modified.
 			GL.BindVertexArray(0);
 			GL.BindBuffer(BufferTarget.ArrayBuffer, 0);

@@ -16,7 +16,8 @@ namespace Subdivision_Project
 	public partial class Form1 : Form
 	{
 		//program, vertex shader, fragment shader, and modelview locations
-		int program, vs, fs, mvLoc, pLoc, model;
+		int program, vs, fs, gs, mvLoc, pLoc, sLoc, model, modeLocation;
+		int mode = 0;
 		//field of view
 		float fov = 0.5f; 
 		float ratio;
@@ -25,6 +26,7 @@ namespace Subdivision_Project
 		Vector3 badPoint = new Vector3(55, 55, 55);
 		bool mousedown = false;
 		Vector3 oldPoint;
+		Vector2 Scale = new Vector2();
 		Vector3 origin = new Vector3(0, 0, -3);
 		Matrix4 track = Matrix4.Identity;
 		Model activeModel;
@@ -46,6 +48,7 @@ namespace Subdivision_Project
 			//Get OpenGL version
 			GL.ClearColor(Color.Bisque);
 			GL.Enable(EnableCap.DepthTest);
+			GL.Enable(EnableCap.CullFace);
 			GL.FrontFace(FrontFaceDirection.Ccw);
 			
 			var glVersion = GL.GetString(StringName.Version);
@@ -59,7 +62,11 @@ namespace Subdivision_Project
 			getMatrixLocations();
 			setProjection();
 			setView();
-
+			Scale.X = (float)glControl1.ClientRectangle.Width;
+			Scale.Y = (float)glControl1.ClientRectangle.Height;
+			GL.Uniform2(sLoc, Scale);
+			GL.Uniform1(modeLocation, mode);
+			
 			Vector3 v1 = new Vector3(0, 0.5f, 0);
 			Vector3 v2 = new Vector3(0, 0.5f, 0);
 			Vertex a2 = new Vertex(v2);
@@ -79,14 +86,20 @@ namespace Subdivision_Project
 		{
 			GL.Viewport(glControl1.ClientRectangle);
 			setProjection();
+			Scale.X = (float)glControl1.ClientRectangle.Width;
+			Scale.Y = (float)glControl1.ClientRectangle.Height;
+			GL.Uniform2(sLoc, Scale);
 			glControl1.Invalidate();
+			Console.Out.WriteLine(Scale);
 		}
 
 		private void getMatrixLocations()
 		{
+			sLoc = GL.GetUniformLocation(program, "scale");
 			model = GL.GetUniformLocation(program, "model");
 			mvLoc = GL.GetUniformLocation(program, "view");
 			pLoc = GL.GetUniformLocation(program, "projection");
+			modeLocation = GL.GetUniformLocation(program, "mode");
 		}
 
 		//use nullables to allow the parameters to be optional 
@@ -125,27 +138,37 @@ namespace Subdivision_Project
 			//read in the shader source code from their respective files
 			StreamReader v_read = new StreamReader(getShader("v_shader.glsl"));
 			StreamReader f_read = new StreamReader(getShader("f_shader.glsl"));
+			StreamReader g_read = new StreamReader(getShader("g_shader.glsl")); 
+
 			string v_string = v_read.ReadToEnd();
 			string f_string = f_read.ReadToEnd();
+			string g_string = g_read.ReadToEnd();
 
 			//create empty shader objects with unsigned int identifiers
 			vs = GL.CreateShader(ShaderType.VertexShader);
 			fs = GL.CreateShader(ShaderType.FragmentShader);
-
+			gs = GL.CreateShader(ShaderType.GeometryShader);
+			
 			//set the source code for our shader objects using what we got from our files
 			GL.ShaderSource(vs, v_string);
 			GL.ShaderSource(fs, f_string);
+			GL.ShaderSource(gs, g_string);
 
 			//compile the source code
 			GL.CompileShader(vs);
 			GL.CompileShader(fs);
+			GL.CompileShader(gs);
 
 			//add the shaders to the program
 			GL.AttachShader(program, vs);
-			GL.AttachShader(program, fs);
 			Console.WriteLine(GL.GetShaderInfoLog(vs));
+
+			GL.AttachShader(program, fs);
 			Console.WriteLine(GL.GetShaderInfoLog(fs));
- 
+
+			GL.AttachShader(program, gs);
+			Console.WriteLine(GL.GetShaderInfoLog(gs));
+
 			//link our program together
 			GL.LinkProgram(program);
 			Console.WriteLine(GL.GetProgramInfoLog(program));
@@ -276,23 +299,8 @@ namespace Subdivision_Project
 
 		private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
 		{
-			int mode = ((ComboBox)sender).SelectedIndex;
-			switch (mode)
-			{
-				case 0:
-					GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
-					GL.Disable(EnableCap.CullFace);
-					break;
-				case 1:
-					GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
-					GL.Enable(EnableCap.CullFace);
-					GL.CullFace(CullFaceMode.Back);
-					break;
-				case 2:
-					GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Point);
-					GL.Disable(EnableCap.CullFace);
-					break;
-			}
+			mode = ((ComboBox)sender).SelectedIndex;
+			GL.Uniform1(modeLocation, mode);
 			glControl1.Invalidate();
 		}
 
