@@ -90,6 +90,8 @@ namespace Subdivision_Project
 
             Console.Out.WriteLine("Simplified mesh from " + numOfTris + " triangles to " + m.triangles.Count() + " triangles!");
 
+            m.edges = new HashSet<Pair>(validPairs);
+
 			return m;
 		}
   
