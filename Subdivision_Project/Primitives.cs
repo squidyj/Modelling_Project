@@ -5,8 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using OpenTK;
-using System.Diagnostics;
-
 
 namespace Subdivision_Project
 {
@@ -108,12 +106,19 @@ namespace Subdivision_Project
 			public HalfEdge opposite;
 			public Triangle face;
 			public Vertex vert;
-			public Pair edge;
 
 			public HalfEdge(Vertex v, Triangle t)
 			{
 				face = t; vert = v;
 			}
+			public Pair edge
+			{
+				get
+				{
+					return new Pair(vert, prev.vert);
+				}
+			}
+
 
 		}
 
@@ -169,29 +174,13 @@ namespace Subdivision_Project
 			}
 		}
 
-		public class VertIndex : IEqualityComparer<Vertex>, IComparer<Vertex>
-		{
-			public int Compare(Vertex v1, Vertex v2)
-			{
-				return v1.n.CompareTo(v2.n);
-			}
-			public bool Equals(Vertex v1, Vertex v2)
-			{
-				return v1.n == v2.n;
-			}
-			public int GetHashCode(Vertex v)
-			{
-				return v.n.GetHashCode();
-			}
-		}
-
 		public class Vertex : IEquatable<Vertex>
 		{
 			public HalfEdge e;
 			public int n;
 			public Vector3 pos;
 			public Mat4 Q = new Mat4();
-			public HashSet<Pair> pairs = new HashSet<Pair>();
+
 			public Vertex(DrawVertex v)
 			{
 				pos = v.pos;
@@ -233,28 +222,16 @@ namespace Subdivision_Project
 				return temp;
 			}
 
-			public HashSet<Pair> ePairs()
-			{
-				var temp = new HashSet<Pair>();
-				HalfEdge e0 = e;
-				do
-				{
-					temp.Add(e0.edge);
-					e0 = e0.opposite.next;
-				} while (e0 != e);
-				return temp;
-			}
-
 			public HashSet<HalfEdge> outgoing()
 			{
 				var temp = new HashSet<HalfEdge>();
 				HalfEdge e0 = e;
 				do
 				{
-					Debug.Assert(e0.opposite.opposite == e0, "Opposite Symmetry Failed");
 					temp.Add(e0);
 					e0 = e0.opposite.next;
 				} while (e0 != e);
+				temp.Remove(null);
 				return temp;
 			}
 			//should probably be cached
@@ -264,13 +241,8 @@ namespace Subdivision_Project
 				//all boundary vertices should have their half-edge reference be to the boundary half-edge they are part of
 				//just in case this isnt true
 				HalfEdge e0 = e;
-				Debug.Assert(this.n == e.opposite.vert.n, "Bad vertex 1");
-				Debug.Assert(this.n != e.vert.n, "Bad vertex 2"); 
-				do
-				{
-					Debug.Assert(e0.opposite.opposite.Equals(e0), "Opposite Symmetry Failed");
-
-					if (e0.face == null)
+				do{
+					if(e0.face == null)
 						return true;
 					e0 = e0.opposite.next;
 				}while(e0 != e);
@@ -307,18 +279,6 @@ namespace Subdivision_Project
 				Q = v1.Q + v2.Q;
 				findVBar();
 				calcCost();
-			}
-
-			public HalfEdge findEdge()
-			{
-				HalfEdge e = v1.e;
-				do{
-					Debug.Assert(e.opposite.opposite == e);
-					if(e.vert.Equals(v2))
-						return e;
-					e = e.opposite.next;
-				}while(e != v1.e);
-				return null;
 			}
 			
 			public override int GetHashCode()
@@ -385,9 +345,11 @@ namespace Subdivision_Project
 		[StructLayout(LayoutKind.Sequential)]
 		public struct DrawVertex
 		{
-			public DrawVertex(Vector3 v) { pos = v; }
+			public DrawVertex(Vector3 v) { pos = v; v1 = new Vector3(); v2 = new Vector3(); }
 			//doesn't assign halfedge
 			public Vector3 pos;
+			public Vector3 v1;
+			public Vector3 v2;
 		}
 
 		[StructLayout(LayoutKind.Sequential)]

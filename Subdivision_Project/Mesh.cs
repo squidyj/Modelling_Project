@@ -15,7 +15,7 @@ namespace Subdivision_Project
 	{
 		//vertex attribute object, vertex buffer object, and index buffer object locations
 		int vao, vbo, ibo;
-		Form1 own;
+
 		Material mat;
 		//rename to adjacentVertices
 	
@@ -37,43 +37,56 @@ namespace Subdivision_Project
 		public List<Vertex> vertices = new List<Vertex>();
 		public List<Triangle> triangles = new List<Triangle>();
 		public HashSet<Pair> edges;
-		public HashSet<HalfEdge> he;
 
-		public Mesh(string pathname, Form1 f)
+		public Mesh(string pathname)
 		{
 			//load the model data from file
 			//TODO change objloader to work with mesh type object
 
-			own = f;
+			
 			Stopwatch overall = new Stopwatch();
 			overall.Start();
 			Stopwatch timer = new Stopwatch();
 			ObjLoader.Load(this, pathname);
 			//sweep redundant triangles
-			cleanMesh();		
-			box = new BoundingBox(this);
+			timer.Restart();
+			Console.Out.WriteLine("Checking Mesh for duplicate triangles");
+			cleanMesh();
+			Console.Out.WriteLine("Check complete, took " + timer.ElapsedMilliseconds + " milliseconds");
 
 			timer.Restart();
+			Console.Out.WriteLine("Calculating bounding box");
+			box = new BoundingBox(this);
+			Console.Out.WriteLine("Bounding box complete, took " + timer.ElapsedMilliseconds + " milliseconds");
+
+			timer.Restart();
+			Console.Out.WriteLine("Initializing Half-Edge Structure");
 			initHalfEdge();
-			foreach(Vertex v in vertices)
-			own.textBox1.Clear();
-			own.textBox1.Text = "Half-Edge initalized in " + timer.ElapsedMilliseconds + " milliseconds.\n\n";
+			Console.Out.WriteLine("Half-Edge complete, took " + timer.ElapsedMilliseconds + " milliseconds");
 
 			setVerts();
 			reset();
 			firstLoad();
-			//pairlist();
+			Console.Out.WriteLine("Model took " + overall.ElapsedMilliseconds + " milliseconds to load");
+			Console.Out.WriteLine("Vertices: " + drawvertices.Length);
+			Console.Out.WriteLine("Faces: " + drawtriangles.Length);
+			Console.Out.WriteLine("Testing");
 
+			SortedSet<Pair> pairs = new SortedSet<Pair>();
+			Pair p1 = new Pair(vertices[0], vertices[1]);
+			p1.cost = 0.5f;
+			Pair p2 = new Pair(vertices[0], vertices[1]);
+			p2.cost = 0.6f;
+			Pair p3 = new Pair(vertices[1], vertices[2]);
+			p3.cost = 0.5f;
+			Pair p4 = new Pair(vertices[0], vertices[1]);
+			p4.cost = 0.5f;
 
-			foreach (Vertex v in vertices)
-			{
-					Debug.Assert(v.pairs.IsSubsetOf(v.ePairs()), "Pairs has extra elements");
-					Debug.Assert(v.ePairs().IsSubsetOf(v.pairs), "Pairs is missing elements");
-			}
+			pairs.Add(p1);
+			Console.Out.WriteLine(pairs.Contains(p2));
+			Console.Out.WriteLine(pairs.Contains(p3));
+			Console.Out.WriteLine(pairs.Contains(p4));
 
-			own.textBox1.AppendText("Model took " + overall.ElapsedMilliseconds + " milliseconds to load\n");
-			own.textBox1.AppendText("Vertices: " + drawvertices.Length + "\n");
-			own.textBox1.AppendText("Faces: " + drawtriangles.Length + "\n");
 		}
 
 		public Mesh(DrawVertex[] verts, DrawTriangle[] tris, BoundingBox b)
@@ -109,6 +122,10 @@ namespace Subdivision_Project
 				d = new DrawTriangle(v[0].n, v[1].n, v[2].n);
 				d.normal = t.normal;
 				dt.Add(d);
+
+				//adding opposite vertices of the triangle as attributes of a vertex
+				//used for wirefram shader and higher quality normal than gradient method
+
 			}
 			drawtriangles = dt.ToArray();
 		}
@@ -135,30 +152,19 @@ namespace Subdivision_Project
 			loadTris();
 		}
 
-		private void pairlist()
-		{
-			HalfEdge e;
-			foreach (Vertex v in vertices)
-			{
-				e = v.e;
-				do
-				{
-					v.pairs.Add(e.edge);
-					e = e.opposite.next;
-				} while (e != v.e);
-			}
-		}
 		//calculates Q matrices for all triangles and Verteices
 		//generates half-edge data structure
 		//generates a set of edges that exist in the mesh as a starting point for pair contraction
 		private void initHalfEdge()
 		{
-			he = new HashSet<HalfEdge>();
+			HashSet<HalfEdge> he = new HashSet<HalfEdge>();
 			Dictionary<Pair, HalfEdge> lookup = new Dictionary<Pair, HalfEdge>();
 			edges = new HashSet<Pair>();
 			HalfEdge e0, e1, e2, opp;
 			Triangle t;
-			Pair p1, p2;
+			Stopwatch timer = new Stopwatch();
+			Console.Out.WriteLine("Processing Interior HalfEdges");
+			timer.Start();
 			foreach (DrawTriangle dt in drawtriangles)
 			{
 				//constructor builds normal and Q matrix for the face
@@ -170,11 +176,8 @@ namespace Subdivision_Project
 				vertices[dt.v2].Q += t.Q;
 				
 				//create halfedges internal to the face and associate them with the face and their respective vertices
-				//e0 is v0->v1
 				e0 = new HalfEdge(vertices[dt.v1], t);
-				//v1->v2
 				e1 = new HalfEdge(vertices[dt.v2], t);
-				//v2->v0
 				e2 = new HalfEdge(vertices[dt.v0], t);
 
 				//set the halfedge that each vertex points to
@@ -184,33 +187,24 @@ namespace Subdivision_Project
 				vertices[dt.v2].e = e2;
 
 				//set the the halfedge that the triangle points to
-				t.e = e0;
+				t.e = e2;
 
 				//link the halfedges together to loop
 				e0.next = e1; e1.next = e2; e2.next = e0;
 				e0.prev = e2; e2.prev = e1; e1.prev = e0;
 
-				e0.edge = new Pair(e2.vert, e0.vert);
-				e1.edge = new Pair(e0.vert, e1.vert);
-				e2.edge = new Pair(e1.vert, e2.vert);
-
-
-				edges.Add(e0.edge); edges.Add(e1.edge); edges.Add(e2.edge);
-				//see if there is an unpeaired halfedge in the data structure already
-				//if it doesn't exist then add this one to be found by it's opposite
+				//find the opposite halfedge for each halfedge if it exists
+				//if it isnt created yet then add these halfedges to the dictionary for later retrieval
 				if (lookup.TryGetValue(e1.edge, out opp))
 				{
 					e1.opposite = opp;
 					opp.opposite = e1;
-					//paired off, remove the halfedge with that edge
 					lookup.Remove(e1.edge);
 				}
 				else
 				{
 					lookup.Add(e1.edge, e1);
 					edges.Add(e1.edge);
-					e1.vert.pairs.Add(e1.edge);
-					e0.vert.pairs.Add(e1.edge);
 				}
 				if (lookup.TryGetValue(e2.edge, out opp))
 				{
@@ -221,8 +215,6 @@ namespace Subdivision_Project
 				else
 				{
 					lookup.Add(e2.edge, e2);
-					e2.vert.pairs.Add(e2.edge);
-					e1.vert.pairs.Add(e2.edge);
 					edges.Add(e2.edge);
 				}
 				if (lookup.TryGetValue(e0.edge, out opp))
@@ -235,43 +227,28 @@ namespace Subdivision_Project
 				{
 					lookup.Add(e0.edge, e0);
 					edges.Add(e0.edge);
-					e0.vert.pairs.Add(e0.edge);
-					e2.vert.pairs.Add(e0.edge);
 				}
 				he.Add(e0); he.Add(e1); he.Add(e2);
 			}
 
-			//after all of the triangles have been processed
-			//all of the halfedge values remaining in the dictionary should be halfedges that are opposite to a boundary
+			Console.Out.WriteLine("Interior HalfEdges complete, took " + timer.ElapsedMilliseconds + " milliseconds");
+			timer.Restart();				
+			//for all of the halfedges that have no opposite currently
+			Console.Out.WriteLine("Processing Exterior HalfEdges");
 			foreach (HalfEdge e in lookup.Values)
 			{
 				if (e.opposite != null)
 					continue;
-				e0 = new HalfEdge(e.prev.vert, null);			
-				e0.edge = e.edge;
+				e0 = new HalfEdge(e.prev.vert, null);
 				e.opposite = e0;
 				e0.opposite = e;
-				he.Add(e0);
 				e.vert.e = e0;
-				walkBoundary(e0, he);
+				walkBoundary(e0);
 			}
-
-			debugHalfEdges(he);
+			Console.Out.WriteLine("Exterior HalfEdges complete, took " + timer.ElapsedMilliseconds + " milliseconds");
 		}
 
-		private void debugHalfEdges(HashSet<HalfEdge> he)
-		{
-			foreach (HalfEdge e in he)
-			{
-				Debug.Assert(e.opposite.opposite == e, "Opposite Initialization Failed");
-				Debug.Assert(e.prev.next == e, "Prev Initialization Failed");
-				Debug.Assert(e.next.prev == e, "Next Initialization Failed");
-				Debug.Assert(e.vert == e.opposite.prev.vert, "Vertex Equality Failed");
-				Debug.Assert(e.vert == e.next.opposite.vert, "Vertex Equality Failed");
-			}
-		}
-
-		void walkBoundary(HalfEdge e, HashSet<HalfEdge> he)
+		void walkBoundary(HalfEdge e)
 		{
 			//starting at boundary halfedge e, move around the next vertex until you find a halfedge with a null opposite
 			HalfEdge e1, e2, e3;
@@ -290,8 +267,6 @@ namespace Subdivision_Project
 					return;
 				//our new boundary halfedge
 				e1 = new HalfEdge(e2.prev.vert, null);
-				e1.edge = e2.edge;
-				
 				e2.vert.e = e1;
 				//set opposites
 				e2.opposite = e1;
@@ -299,7 +274,6 @@ namespace Subdivision_Project
 				//set next and previous from the last boundary we assigned
 				e3.next = e1;
 				e1.prev = e3;
-				he.Add(e1);
 				//move up one halfedge and start looking for the next
 				e3 = e2 = e1;
 			} while (true);
@@ -383,6 +357,13 @@ breakout:
 			GL.EnableVertexAttribArray(0);
 			GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, vertSize, 0);
 
+			//position of second vertex in triangle
+			GL.EnableVertexAttribArray(1);
+			GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, vertSize, vecSize);
+
+			//position of third vertex in triangle
+			GL.EnableVertexAttribArray(2);
+			GL.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, vertSize, 2 * vecSize);
 
 			//state is set, unbind objects so they are not modified.
 			GL.BindVertexArray(0);

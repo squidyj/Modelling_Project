@@ -11,7 +11,6 @@ namespace Subdivision_Project
 {
 	public class Model
 	{
-		public Form1 owner;
 		public Mesh baseMesh, simplifiedMesh, subdividedMesh, activeMesh;
 		//indicates whether model should be rendered
 
@@ -24,12 +23,11 @@ namespace Subdivision_Project
 			get { return activeMesh.Transform; }
 		}
 
-		public Model(string pathname, Form1 f)
+		public Model(string pathname)
 		{
 			//base mesh always exists
-			baseMesh = new Mesh(pathname, f);
+			baseMesh = new Mesh(pathname);
 			activeMesh = baseMesh;
-			owner = f;
 		}
 
 		//sets the active maesh to the indicated mesh if that mesh exists
@@ -67,7 +65,7 @@ namespace Subdivision_Project
  
         public void simplify(int targetTris)
         {
-			var temp = Simple.simplify(activeMesh, targetTris, owner);
+			var temp = Simple.simplify(activeMesh, targetTris);
 			if (temp == null)
 				return;
 			simplifiedMesh = temp;

@@ -11,7 +11,6 @@ using OpenTK.Graphics.OpenGL;
 using System.IO;
 using OpenTK;
 using Subdivision_Project.Primitives;
-using System.Diagnostics;
 namespace Subdivision_Project
 {
 	public partial class Form1 : Form
@@ -27,8 +26,8 @@ namespace Subdivision_Project
 		Vector3 badPoint = new Vector3(55, 55, 55);
 		bool mousedown = false;
 		Vector3 oldPoint;
-		Vector2 resolution = new Vector2();
-		Vector3 origin = new Vector3(0, 0, 3);
+		Vector2 Scale = new Vector2();
+		Vector3 origin = new Vector3(0, 0, -3);
 		Matrix4 track = Matrix4.Identity;
 		Model activeModel;
 
@@ -47,14 +46,15 @@ namespace Subdivision_Project
 		private void gl_load(object sender, EventArgs e)
 		{
 			//Get OpenGL version
-			GL.ClearColor(0.075f, 0.1f, 0.1f, 1.0f);
+			GL.ClearColor(Color.Bisque);
 			GL.Enable(EnableCap.DepthTest);
+			GL.Enable(EnableCap.CullFace);
 			GL.FrontFace(FrontFaceDirection.Ccw);
 			
 			var glVersion = GL.GetString(StringName.Version);
 			int major = int.Parse(glVersion[0].ToString());
 			int minor = int.Parse(glVersion[2].ToString());
-			textBox1.AppendText("OpenGL major version " + major + ", minor version " + minor + ".\n");
+			Console.Out.WriteLine("OpenGL major version " + major + ", minor version " + minor + ".") ;
 
 			models = new List<Model>();
 			fov = 60f * ((float) Math.PI / 180f);
@@ -62,29 +62,17 @@ namespace Subdivision_Project
 			getMatrixLocations();
 			setProjection();
 			setView();
-			resolution.X = (float)glControl1.ClientRectangle.Width;
-			resolution.Y = (float)glControl1.ClientRectangle.Height;
-			GL.Uniform2(sLoc, resolution);
+			Scale.X = (float)glControl1.ClientRectangle.Width;
+			Scale.Y = (float)glControl1.ClientRectangle.Height;
+			GL.Uniform2(sLoc, Scale);
 			GL.Uniform1(modeLocation, mode);
 			
 			Vector3 v1 = new Vector3(0, 0.5f, 0);
 			Vector3 v2 = new Vector3(0, 0.5f, 0);
 			Vertex a2 = new Vertex(v2);
-			Vertex a1 = new Vertex(v1);			
-	
-			Pair p1, p2;
-			p1 = new Pair(a1, a2);
-			p2 = new Pair(a2, a1);
-			Debug.Assert(p1.Equals(p2), "Pairs do not evaluate to equal");
-			SortedSet<Pair> pairset = new SortedSet<Pair>();
-			pairset.Add(p1);
-			pairset.Add(p2);
-			Debug.Assert(pairset.Count == 1, "Pairset contains two distinct elements");
-			pairset.Remove(p1);
-			p1.update();
-			pairset.Add(p1);
-			pairset.Add(p2);
-//			Debug.Assert(pairset.Count == 2, "pairset does not contain two distinct elements");
+			Vertex a1 = new Vertex(v1);
+			Console.Out.WriteLine(a1.Equals(a2));
+			
 		}
 
 		private void setProjection()
@@ -98,10 +86,11 @@ namespace Subdivision_Project
 		{
 			GL.Viewport(glControl1.ClientRectangle);
 			setProjection();
-			resolution.X = (float)glControl1.ClientRectangle.Width;
-			resolution.Y = (float)glControl1.ClientRectangle.Height;
-			GL.Uniform2(sLoc, resolution);
+			Scale.X = (float)glControl1.ClientRectangle.Width;
+			Scale.Y = (float)glControl1.ClientRectangle.Height;
+			GL.Uniform2(sLoc, Scale);
 			glControl1.Invalidate();
+			Console.Out.WriteLine(Scale);
 		}
 
 		private void getMatrixLocations()
@@ -172,17 +161,17 @@ namespace Subdivision_Project
 
 			//add the shaders to the program
 			GL.AttachShader(program, vs);
-			textBox1.AppendText(GL.GetShaderInfoLog(vs) + "\n");
+			Console.WriteLine(GL.GetShaderInfoLog(vs));
 
 			GL.AttachShader(program, fs);
-			textBox1.AppendText(GL.GetShaderInfoLog(fs) + "\n");
+			Console.WriteLine(GL.GetShaderInfoLog(fs));
 
 			GL.AttachShader(program, gs);
-			textBox1.AppendText(GL.GetShaderInfoLog(gs) + "\n");
+			Console.WriteLine(GL.GetShaderInfoLog(gs));
 
 			//link our program together
 			GL.LinkProgram(program);
-			textBox1.AppendText(GL.GetProgramInfoLog(program) + "\n");
+			Console.WriteLine(GL.GetProgramInfoLog(program));
 
 			//tell opengl to use our shader program when rendering
 			GL.UseProgram(program);
@@ -210,7 +199,7 @@ namespace Subdivision_Project
 			open.FilterIndex = 1;
 			if (open.ShowDialog() != DialogResult.OK)
 				return;
-			Model m = new Model(open.FileName, this);
+			Model m = new Model(open.FileName);
 			models.Add(m);
 			activeModel = m;
 			setView(target: new Vector3(0, 0, 0)); 
