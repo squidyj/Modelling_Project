@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using OpenTK;
+using System.Diagnostics;
+
 
 namespace Subdivision_Project
 {
@@ -221,10 +223,12 @@ namespace Subdivision_Project
 				HalfEdge e0 = e;
 				do
 				{
+					//Debug.Assert(e0.opposite.opposite == e0, "Opposite Symmetry Failed");
+					Debug.Assert(e0.next.prev == e0, "Next Reference Symmetry Failed");
+					Debug.Assert(e0.prev.next == e0, "Prev Reference Symmetry Failed");
 					temp.Add(e0);
 					e0 = e0.opposite.next;
 				} while (e0 != e);
-				temp.Remove(null);
 				return temp;
 			}
 			//should probably be cached

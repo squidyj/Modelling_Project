@@ -65,7 +65,7 @@ namespace Subdivision_Project
                 m = contract(m, p);
 
 				validPairs = updateCosts(m, validPairs, p);
-
+				Console.Out.Write("\n");
 //				Console.Out.WriteLine(validPairs.Count);
 //              Console.Out.WriteLine("Contracted pair (" + p.v1.n + ", " + p.v2.n + ")");
 
@@ -92,9 +92,11 @@ namespace Subdivision_Project
   
         public static SortedSet<Pair> updateCosts(Mesh m, SortedSet<Pair> validPairs, Pair p)
         {
+            
 			List<Pair> updated = new List<Pair>(p.v1.pairs.Union(p.v2.pairs));
-			List<int> removal = new List<int>();
+			updated.Remove(p);
 			Pair p0;
+            
 			for(int i = 0; i < updated.Count; i++)
 			{
 				p0 = updated[i];
@@ -103,16 +105,10 @@ namespace Subdivision_Project
 					p0.v1 = p.v1;
 				if(p0.v2 == p.v2)
 					p0.v2 = p.v1;
-				if (p0.v1 != p0.v2)
-				{
-					p0.update();
-					validPairs.Add(p0);
-				}
-				else
-					removal.Add(i);
+				p0.update();
+				validPairs.Add(p0);
 			}
-			for (int i = removal.Count - 1; i >= 0; i--)
-				updated.RemoveAt(removal[i]);
+            
 			p.v1.pairs = new HashSet<Pair>(updated);
 			return validPairs;
 		}
@@ -123,30 +119,43 @@ namespace Subdivision_Project
 			//set the position of p.v1 to vbar
 			//every edge to p.v2 must become an edge to p.v1
 			//delete all degenerate triangles
-
             HashSet<HalfEdge> edges = p.v2.outgoing();
-
+            
             HalfEdge adjExtEdge, oppExtEdge;
 
             foreach (HalfEdge outgoing in edges)
             {
+				//needs a boundary case
                 if (outgoing.vert == p.v1)
                 {
-                    adjExtEdge = outgoing.prev.opposite;
-                    oppExtEdge = outgoing.next.opposite;
+					if (outgoing.face == null)
+					{
+						outgoing.prev.vert = p.v1;
+						outgoing.next.prev = outgoing.prev;
+						outgoing.prev.next = outgoing.next;
+					}
+					else
+					{
+						adjExtEdge = outgoing.prev.opposite;
+						oppExtEdge = outgoing.next.opposite;
 
-                    // Make sure none of the remaining vertices are linked to internal edges
-                    p.v1.e = adjExtEdge;
-                    adjExtEdge.vert.e = oppExtEdge;
+						// Make sure none of the remaining vertices are linked to internal edges
+						p.v1.e = adjExtEdge;
+						adjExtEdge.vert.e = oppExtEdge;
 
-                    adjExtEdge.opposite = oppExtEdge;
-                    oppExtEdge.opposite = adjExtEdge;
+						adjExtEdge.opposite = oppExtEdge;
+						oppExtEdge.opposite = adjExtEdge;
 
-                    m.triangles.Remove(outgoing.face);
+						m.triangles.Remove(outgoing.face);
+					}
                 }
                 else if (outgoing.next.vert == p.v1)
                 {
-                    adjExtEdge = outgoing.opposite;
+					//imagine that v1 and v2 cut a corner
+					//if you walk 2 steps on the boundary you'll get to v1 but that is incorrect
+					if (outgoing.face == null)
+						continue;
+					adjExtEdge = outgoing.opposite;
                     oppExtEdge = outgoing.next.opposite;
 
                     // Make sure none of the remaining vertices are linked to internal edges
@@ -160,10 +169,17 @@ namespace Subdivision_Project
                 }
                 else
                 {
-                    outgoing.prev.vert = p.v1;
+					//if there is an incoming edge from v1 to v2 on the boundary
+					if ((outgoing.face == null) && (outgoing.prev.prev.vert == p.v1))
+					{
+						outgoing.prev = outgoing.prev.prev;
+						outgoing.prev.next = outgoing;
+					}
+					else
+						outgoing.prev.vert = p.v1;
                 }
             }
-			Console.Out.WriteLine(p.v1.pos);
+            
  //           m.vertices.Remove(p.v2);
             p.v1.pos = p.vbar;
 
