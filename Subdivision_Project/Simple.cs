@@ -103,6 +103,7 @@ namespace Subdivision_Project
 			for(int i = 0; i < pairs.Count; i++)
 			{
 				modified = false;
+                if (pairs[i].v1 == p.v1 || pairs[i].v2 == p.v2) { validPairs.Remove(pairs[i]); modified = true; }
                 if (pairs[i].v1 == p.v2) { validPairs.Remove(pairs[i]); pairs[i].v1 = p.v1; modified = true; }
                 if (pairs[i].v2 == p.v2) { validPairs.Remove(pairs[i]); pairs[i].v2 = p.v1; modified = true; }
 				if(modified)

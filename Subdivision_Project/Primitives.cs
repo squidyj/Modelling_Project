@@ -224,13 +224,14 @@ namespace Subdivision_Project
 
 			public HashSet<HalfEdge> outgoing()
 			{
+                bool success;
 				var temp = new HashSet<HalfEdge>();
 				HalfEdge e0 = e;
 				do
 				{
-					temp.Add(e0);
+					success = temp.Add(e0);
 					e0 = e0.opposite.next;
-				} while (e0 != e);
+				} while (success);
 				temp.Remove(null);
 				return temp;
 			}
