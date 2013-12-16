@@ -51,16 +51,19 @@ namespace Subdivision_Project
 			//sweep redundant triangles
 			cleanMesh();		
 			box = new BoundingBox(this);
-			
+
 			timer.Restart();
 			initHalfEdge();
+			foreach(Vertex v in vertices)
 			own.textBox1.Clear();
 			own.textBox1.Text = "Half-Edge initalized in " + timer.ElapsedMilliseconds + " milliseconds.\n\n";
 
 			setVerts();
 			reset();
 			firstLoad();
-			pairlist();
+			//pairlist();
+
+
 			foreach (Vertex v in vertices)
 			{
 					Debug.Assert(v.pairs.IsSubsetOf(v.ePairs()), "Pairs has extra elements");
@@ -190,6 +193,8 @@ namespace Subdivision_Project
 				e1.edge = new Pair(e0.vert, e1.vert);
 				e2.edge = new Pair(e1.vert, e2.vert);
 
+
+				edges.Add(e0.edge); edges.Add(e1.edge); edges.Add(e2.edge);
 				//see if there is an unpeaired halfedge in the data structure already
 				//if it doesn't exist then add this one to be found by it's opposite
 				if (lookup.TryGetValue(e1.edge, out opp))
@@ -203,6 +208,8 @@ namespace Subdivision_Project
 				{
 					lookup.Add(e1.edge, e1);
 					edges.Add(e1.edge);
+					e1.vert.pairs.Add(e1.edge);
+					e0.vert.pairs.Add(e1.edge);
 				}
 				if (lookup.TryGetValue(e2.edge, out opp))
 				{
@@ -213,6 +220,8 @@ namespace Subdivision_Project
 				else
 				{
 					lookup.Add(e2.edge, e2);
+					e2.vert.pairs.Add(e2.edge);
+					e1.vert.pairs.Add(e2.edge);
 					edges.Add(e2.edge);
 				}
 				if (lookup.TryGetValue(e0.edge, out opp))
@@ -225,6 +234,8 @@ namespace Subdivision_Project
 				{
 					lookup.Add(e0.edge, e0);
 					edges.Add(e0.edge);
+					e0.vert.pairs.Add(e0.edge);
+					e2.vert.pairs.Add(e0.edge);
 				}
 				he.Add(e0); he.Add(e1); he.Add(e2);
 			}
@@ -254,7 +265,8 @@ namespace Subdivision_Project
 				Debug.Assert(e.opposite.opposite == e, "Opposite Initialization Failed");
 				Debug.Assert(e.prev.next == e, "Prev Initialization Failed");
 				Debug.Assert(e.next.prev == e, "Next Initialization Failed");
-				Debug.Assert(e.prev.vert == e.opposite.vert, "Vertex Equality Failed");
+				Debug.Assert(e.vert == e.opposite.prev.vert, "Vertex Equality Failed");
+				Debug.Assert(e.vert == e.next.opposite.vert, "Vertex Equality Failed");
 			}
 		}
 

@@ -35,8 +35,15 @@ namespace Subdivision_Project
 					validPairs.Add(p1);
 				}
 			}
+			foreach (Vertex v in m.vertices)
+			{
+				foreach (Pair p5 in v.pairs)
+					Debug.Assert(p5.Q != null, "Null Fail");
+			}
+
 			f.textBox1.AppendText(" done, in " + timer.ElapsedMilliseconds + "ms\n");
             
+
 
 			//loop until enough triangles have been removed 
 			//contract the lowest cost pair and remove it from the heap
@@ -103,11 +110,13 @@ namespace Subdivision_Project
 					p0.v1 = p.v1;
 				if(p0.v2.Equals(p.v2))
 					p0.v2 = p.v1;
-				p0.update();
-				if (isValid(p0))
-					validPairs.Add(p0);
 				Debug.Assert(p0.v1 != p0.v2, "Pair is made up of two of the same vertex");
 				Debug.Assert(!(p0.v1.Equals(p.v2) || p0.v2.Equals(p.v2)), "Contracted Vertex Passed Back into ValidPairs");
+				if (isValid(p0))
+				{
+					p0.update();
+					validPairs.Add(p0);
+				}
 			}
 			
 			p.v1.pairs = new HashSet<Pair>(updated);

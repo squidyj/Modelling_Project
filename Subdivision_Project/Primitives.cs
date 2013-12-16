@@ -265,7 +265,7 @@ namespace Subdivision_Project
 				//just in case this isnt true
 				HalfEdge e0 = e;
 				do{
-					Debug.Assert(e0.opposite.opposite == e0, "Opposite Symmetry Failed");
+					Debug.Assert(e0.opposite.opposite.Equals(e0), "Opposite Symmetry Failed");
 
 					if (e0.face == null)
 						return true;
