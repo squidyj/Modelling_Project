@@ -151,77 +151,16 @@ namespace Subdivision_Project
 		// TODO: Make sure to check logic! This one is prone to errors!
 		public static Mesh contract(Mesh m, Pair p)
 		{
-			//set the position of p.v1 to vbar
-			//every edge to p.v2 must become an edge to p.v1
-			//delete all degenerate triangles
-            HashSet<HalfEdge> edges = p.v2.outgoing();
-
-			//opposite half edges
+			var degenerate = new HashSet<Triangle>(p.v1.adjacentFaces().Intersect(p.v2.adjacentFaces()));
+			List<Vertex> verts;
 			HalfEdge o1, o2;
-            foreach (HalfEdge outgoing in edges)
-            {
-				//needs a boundary case
-                if (outgoing.vert.Equals(p.v1))
-                {
-					if (outgoing.face == null)
-					{
-						outgoing.prev.vert = p.v1;
-						outgoing.next.prev = outgoing.prev;
-						outgoing.prev.next = outgoing.next;
-					}
-					else
-					{
-						o1 = outgoing.next.opposite;
-						o2 = outgoing.prev.opposite; 
-						// Make sure none of the remaining vertices are linked to internal edges
-						//but don't overwrite if they are referencing boundary halfedges
-						if(p.v1.e.face != null)
-							p.v1.e = o2;
-						if(outgoing.next.vert.e.face != null)
-							outgoing.next.vert.e = o1;
+			foreach (Triangle t in degenerate)
+			{
 
-						o1.opposite = o2;
-						o2.opposite = o1;
-						m.triangles.Remove(outgoing.face);
-					}
-                }
-                else if (outgoing.next.vert.Equals(p.v1))
-                {
-					//imagine that v1 and v2 cut a corner
-					//if you walk 2 steps on the boundary you'll get to v1 but that is incorrect
-					Debug.Assert(outgoing.face != null, "Attempted to cut off a corner");
-					o1 = outgoing.next.opposite;
-					o2 = outgoing.opposite;
 
-					if (p.v1.e.face != null)
-						p.v1.e = o1;
-					if (outgoing.next.vert.e.face != null)
-						outgoing.next.vert.e = o2;
-
-					o1.opposite = o2;
-					o2.opposite = o1;
-
-                    m.triangles.Remove(outgoing.face);
-                }
-                else
-                {
-					//if there is an incoming edge from v1 to v2 on the boundary
-					if ((outgoing.face == null) && (outgoing.prev.prev.vert.Equals(p.v1)))
-					{
-						outgoing.prev = outgoing.prev.prev;
-						outgoing.prev.next = outgoing;
-					}
-					else
-						outgoing.prev.vert = p.v1;
-                }
-
+				p.v1.pos = p.vbar;
+				p.v1.Q = p.Q;
 			}
-            
-//          m.vertices.Remove(p.v2);
-			//does this line break everything? NO 
-			p.v1.pos = p.vbar;
-			p.v1.Q = p.Q;
-
             return m;
 		}
 	}

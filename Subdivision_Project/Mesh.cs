@@ -37,6 +37,7 @@ namespace Subdivision_Project
 		public List<Vertex> vertices = new List<Vertex>();
 		public List<Triangle> triangles = new List<Triangle>();
 		public HashSet<Pair> edges;
+		public HashSet<HalfEdge> he;
 
 		public Mesh(string pathname, Form1 f)
 		{
@@ -152,7 +153,7 @@ namespace Subdivision_Project
 		//generates a set of edges that exist in the mesh as a starting point for pair contraction
 		private void initHalfEdge()
 		{
-			var he = new HashSet<HalfEdge>();
+			he = new HashSet<HalfEdge>();
 			Dictionary<Pair, HalfEdge> lookup = new Dictionary<Pair, HalfEdge>();
 			edges = new HashSet<Pair>();
 			HalfEdge e0, e1, e2, opp;

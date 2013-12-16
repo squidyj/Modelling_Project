@@ -264,7 +264,10 @@ namespace Subdivision_Project
 				//all boundary vertices should have their half-edge reference be to the boundary half-edge they are part of
 				//just in case this isnt true
 				HalfEdge e0 = e;
-				do{
+				Debug.Assert(this.n == e.opposite.vert.n, "Bad vertex 1");
+				Debug.Assert(this.n != e.vert.n, "Bad vertex 2"); 
+				do
+				{
 					Debug.Assert(e0.opposite.opposite.Equals(e0), "Opposite Symmetry Failed");
 
 					if (e0.face == null)
