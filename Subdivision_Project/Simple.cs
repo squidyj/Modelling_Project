@@ -52,7 +52,7 @@ namespace Subdivision_Project
                 Console.Out.WriteLine("Now attempting to contract pair: (" + p.v1.n + ", " + p.v2.n + ")");
                 Console.Out.WriteLine("The pair is in validPairs: " + validPairs.Contains(p));
  */
-				Debug.Assert(!(contracted.Contains(p.v1) || contracted.Contains(p.v2)), "Attempting to contract a previously contracted vertex");
+				//Debug.Assert(!(contracted.Contains(p.v1) || contracted.Contains(p.v2)), "Attempting to contract a previously contracted vertex");
 				
 
 //				Console.Out.Write(validPairs.Count + "->");
@@ -62,9 +62,7 @@ namespace Subdivision_Project
 //                Console.Out.WriteLine("The pair is in validPairs: " + validPairs.Contains(p));
 
 				m = contract(m, p);
-				Console.Out.Write("b");
 				validPairs = updateCosts(m, validPairs, p);
-				Console.Out.WriteLine("c");
 			
 //				Console.Out.WriteLine(validPairs.Count);
 //              Console.Out.WriteLine("Contracted pair (" + p.v1.n + ", " + p.v2.n + ")");
@@ -92,7 +90,6 @@ namespace Subdivision_Project
   
         public static SortedSet<Pair> updateCosts(Mesh m, SortedSet<Pair> validPairs, Pair p)
         {
-			Console.Out.Write("1");
 				
 			var updated = new List<Pair>(p.v1.pairs.Union(p.v2.pairs));
 			updated.Remove(p);
@@ -107,15 +104,12 @@ namespace Subdivision_Project
 				if(p0.v2.Equals(p.v2))
 					p0.v2 = p.v1;
 				p0.update();
-				Console.Out.Write("2");
 				if (isValid(p0))
 					validPairs.Add(p0);
-				Console.Out.Write("3");
 				Debug.Assert(p0.v1 != p0.v2, "Pair is made up of two of the same vertex");
-				Debug.Assert(p0.v1.Equals(p.v2) || p0.v2.Equals(p.v2), "Contracted Vertex Passed Back into ValidPairs");
+				Debug.Assert(!(p0.v1.Equals(p.v2) || p0.v2.Equals(p.v2)), "Contracted Vertex Passed Back into ValidPairs");
 			}
-			Console.Out.Write("4");
-
+			
 			p.v1.pairs = new HashSet<Pair>(updated);
 			p.v2.pairs = null;
 
@@ -127,23 +121,19 @@ namespace Subdivision_Project
 				if(p1.v2.Equals(p.v2))
 					forgotten.Add(p1);
 			}
-			Console.Out.Write("5");
-
+			
 			return validPairs;
 		}
 
 		private static bool isValid(Pair p)
 		{
 			HalfEdge e;
-			Console.Out.Write(" 2.1 ");
-
+			
 			if (p.v1.boundary() || p.v2.boundary())
 			{
 				//if the edge of contraction is not a boundary
 				//find the halfedge between the two
-				Console.Out.Write(" 2.2 ");
 				e = p.findEdge();
-				Console.Out.Write(" 2.3 ");
 				if ((e.face != null) && (e.opposite.face != null))
 					return false;
 			}
