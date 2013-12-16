@@ -172,8 +172,8 @@ namespace Subdivision_Project
 					}
 					else
 					{
-						o1 = outgoing.next;
-						o2 = outgoing.prev; 
+						o1 = outgoing.next.opposite;
+						o2 = outgoing.prev.opposite; 
 						// Make sure none of the remaining vertices are linked to internal edges
 						//but don't overwrite if they are referencing boundary halfedges
 						if(p.v1.e.face != null)
