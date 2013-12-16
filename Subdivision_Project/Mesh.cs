@@ -186,9 +186,9 @@ namespace Subdivision_Project
 				e0.next = e1; e1.next = e2; e2.next = e0;
 				e0.prev = e2; e2.prev = e1; e1.prev = e0;
 
-				e0.edge = new Pair(e0.vert, e1.vert);
-				e1.edge = new Pair(e1.vert, e2.vert);
-				e2.edge = new Pair(e2.vert, e0.vert);
+				e0.edge = new Pair(e2.vert, e0.vert);
+				e1.edge = new Pair(e0.vert, e1.vert);
+				e2.edge = new Pair(e1.vert, e2.vert);
 
 				//see if there is an unpeaired halfedge in the data structure already
 				//if it doesn't exist then add this one to be found by it's opposite
@@ -254,6 +254,7 @@ namespace Subdivision_Project
 				Debug.Assert(e.opposite.opposite == e, "Opposite Initialization Failed");
 				Debug.Assert(e.prev.next == e, "Prev Initialization Failed");
 				Debug.Assert(e.next.prev == e, "Next Initialization Failed");
+				Debug.Assert(e.prev.vert == e.opposite.vert, "Vertex Equality Failed");
 			}
 		}
 
