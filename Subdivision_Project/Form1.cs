@@ -11,6 +11,7 @@ using OpenTK.Graphics.OpenGL;
 using System.IO;
 using OpenTK;
 using Subdivision_Project.Primitives;
+using System.Diagnostics;
 namespace Subdivision_Project
 {
 	public partial class Form1 : Form
@@ -70,6 +71,20 @@ namespace Subdivision_Project
 			Vector3 v2 = new Vector3(0, 0.5f, 0);
 			Vertex a2 = new Vertex(v2);
 			Vertex a1 = new Vertex(v1);			
+	
+			Pair p1, p2;
+			p1 = new Pair(a1, a2);
+			p2 = new Pair(a2, a1);
+			Debug.Assert(p1.Equals(p2), "Pairs do not evaluate to equal");
+			SortedSet<Pair> pairset = new SortedSet<Pair>();
+			pairset.Add(p1);
+			pairset.Add(p2);
+			Debug.Assert(pairset.Count == 1, "Pairset contains two distinct elements");
+			pairset.Remove(p1);
+			p1.update();
+			pairset.Add(p1);
+			pairset.Add(p2);
+//			Debug.Assert(pairset.Count == 2, "pairset does not contain two distinct elements");
 		}
 
 		private void setProjection()

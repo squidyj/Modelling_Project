@@ -60,6 +60,13 @@ namespace Subdivision_Project
 			setVerts();
 			reset();
 			firstLoad();
+			pairlist();
+			foreach (Vertex v in vertices)
+			{
+					Debug.Assert(v.pairs.IsSubsetOf(v.ePairs()), "Pairs has extra elements");
+					Debug.Assert(v.ePairs().IsSubsetOf(v.pairs), "Pairs is missing elements");
+			}
+
 			own.textBox1.AppendText("Model took " + overall.ElapsedMilliseconds + " milliseconds to load\n");
 			own.textBox1.AppendText("Vertices: " + drawvertices.Length + "\n");
 			own.textBox1.AppendText("Faces: " + drawtriangles.Length + "\n");
@@ -124,19 +131,30 @@ namespace Subdivision_Project
 			loadTris();
 		}
 
+		private void pairlist()
+		{
+			HalfEdge e;
+			foreach (Vertex v in vertices)
+			{
+				e = v.e;
+				do
+				{
+					v.pairs.Add(e.edge);
+					e = e.opposite.next;
+				} while (e != v.e);
+			}
+		}
 		//calculates Q matrices for all triangles and Verteices
 		//generates half-edge data structure
 		//generates a set of edges that exist in the mesh as a starting point for pair contraction
 		private void initHalfEdge()
 		{
-			HashSet<HalfEdge> he = new HashSet<HalfEdge>();
+			var he = new HashSet<HalfEdge>();
 			Dictionary<Pair, HalfEdge> lookup = new Dictionary<Pair, HalfEdge>();
 			edges = new HashSet<Pair>();
 			HalfEdge e0, e1, e2, opp;
 			Triangle t;
-			Pair p;
-			Stopwatch timer = new Stopwatch();
-			timer.Start();
+			Pair p1, p2;
 			foreach (DrawTriangle dt in drawtriangles)
 			{
 				//constructor builds normal and Q matrix for the face
@@ -148,8 +166,11 @@ namespace Subdivision_Project
 				vertices[dt.v2].Q += t.Q;
 				
 				//create halfedges internal to the face and associate them with the face and their respective vertices
+				//e0 is v0->v1
 				e0 = new HalfEdge(vertices[dt.v1], t);
+				//v1->v2
 				e1 = new HalfEdge(vertices[dt.v2], t);
+				//v2->v0
 				e2 = new HalfEdge(vertices[dt.v0], t);
 
 				//set the halfedge that each vertex points to
@@ -159,25 +180,23 @@ namespace Subdivision_Project
 				vertices[dt.v2].e = e2;
 
 				//set the the halfedge that the triangle points to
-				t.e = e2;
+				t.e = e0;
 
 				//link the halfedges together to loop
 				e0.next = e1; e1.next = e2; e2.next = e0;
 				e0.prev = e2; e2.prev = e1; e1.prev = e0;
 
-				e0.edge = new Pair(e0.vert, e0.prev.vert);
-				e1.edge = new Pair(e1.vert, e1.prev.vert);
-				e2.edge = new Pair(e2.vert, e2.prev.vert);
+				e0.edge = new Pair(e0.vert, e1.vert);
+				e1.edge = new Pair(e1.vert, e2.vert);
+				e2.edge = new Pair(e2.vert, e0.vert);
 
-				e0.vert.pairs.Add(e0.edge); e0.prev.vert.pairs.Add(e0.edge);
-				e1.vert.pairs.Add(e1.edge); e1.prev.vert.pairs.Add(e1.edge);
-				e2.vert.pairs.Add(e2.edge); e2.prev.vert.pairs.Add(e2.edge);
-				//find the opposite halfedge for each halfedge if it exists
-				//if it isnt created yet then add these halfedges to the dictionary for later retrieval
+				//see if there is an unpeaired halfedge in the data structure already
+				//if it doesn't exist then add this one to be found by it's opposite
 				if (lookup.TryGetValue(e1.edge, out opp))
 				{
 					e1.opposite = opp;
 					opp.opposite = e1;
+					//paired off, remove the halfedge with that edge
 					lookup.Remove(e1.edge);
 				}
 				else
@@ -210,21 +229,35 @@ namespace Subdivision_Project
 				he.Add(e0); he.Add(e1); he.Add(e2);
 			}
 
-			timer.Restart();				
-			//for all of the halfedges that have no opposite currently
+			//after all of the triangles have been processed
+			//all of the halfedge values remaining in the dictionary should be halfedges that are opposite to a boundary
 			foreach (HalfEdge e in lookup.Values)
 			{
 				if (e.opposite != null)
 					continue;
-				e0 = new HalfEdge(e.prev.vert, null);
+				e0 = new HalfEdge(e.prev.vert, null);			
+				e0.edge = e.edge;
 				e.opposite = e0;
 				e0.opposite = e;
+				he.Add(e0);
 				e.vert.e = e0;
-				walkBoundary(e0);
+				walkBoundary(e0, he);
+			}
+
+			debugHalfEdges(he);
+		}
+
+		private void debugHalfEdges(HashSet<HalfEdge> he)
+		{
+			foreach (HalfEdge e in he)
+			{
+				Debug.Assert(e.opposite.opposite == e, "Opposite Initialization Failed");
+				Debug.Assert(e.prev.next == e, "Prev Initialization Failed");
+				Debug.Assert(e.next.prev == e, "Next Initialization Failed");
 			}
 		}
 
-		void walkBoundary(HalfEdge e)
+		void walkBoundary(HalfEdge e, HashSet<HalfEdge> he)
 		{
 			//starting at boundary halfedge e, move around the next vertex until you find a halfedge with a null opposite
 			HalfEdge e1, e2, e3;
@@ -243,6 +276,8 @@ namespace Subdivision_Project
 					return;
 				//our new boundary halfedge
 				e1 = new HalfEdge(e2.prev.vert, null);
+				e1.edge = e2.edge;
+				
 				e2.vert.e = e1;
 				//set opposites
 				e2.opposite = e1;
@@ -250,6 +285,7 @@ namespace Subdivision_Project
 				//set next and previous from the last boundary we assigned
 				e3.next = e1;
 				e1.prev = e3;
+				he.Add(e1);
 				//move up one halfedge and start looking for the next
 				e3 = e2 = e1;
 			} while (true);

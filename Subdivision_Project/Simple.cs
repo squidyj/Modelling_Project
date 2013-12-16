@@ -17,55 +17,55 @@ namespace Subdivision_Project
 		{
             Stopwatch timer = new Stopwatch();
 			Stopwatch overall = new Stopwatch();
+			SortedSet<Vertex> contracted = new SortedSet<Vertex>(new VertIndex());
 			overall.Start();
             int numOfTris = m.triangles.Count();
 			f.textBox1.Clear();
 			f.textBox1.Text = "Now simplifying to at most " + targetTris + " triangles\n";
-
 			//then the valid pairs
 			f.textBox1.AppendText("Updating edge costs...");
             timer.Restart();
-			foreach (Pair p1 in m.edges)
-				p1.update();
-			f.textBox1.AppendText(" done, in " + timer.ElapsedMilliseconds + "ms\n");
-            Pair oddPair = new Pair(m.vertices[0], m.vertices[0]);
+			SortedSet<Pair> validPairs = new SortedSet<Pair>();
 
-            foreach (Pair p2 in m.edges)
-            {
-                if (p2.v1.n == 2396 && p2.v2.n == 767)
-                {
-                    oddPair = p2;
-                }
-            }
-			SortedSet<Pair> validPairs = new SortedSet<Pair>(m.edges);
+			foreach (Pair p1 in m.edges)
+			{
+				if (isValid(p1))
+				{
+					p1.update();
+					validPairs.Add(p1);
+				}
+			}
+			f.textBox1.AppendText(" done, in " + timer.ElapsedMilliseconds + "ms\n");
+            
 
 			//loop until enough triangles have been removed 
 			//contract the lowest cost pair and remove it from the heap
 			f.textBox1.AppendText("Contracting pairs...");
             timer.Restart();
 			Pair p;
-
-            int counter = 0;
             
 			while (m.triangles.Count() > targetTris && validPairs.Count > 0)
             {
-                counter++;
 
                 p = validPairs.First();
 				/*
                 Console.Out.WriteLine("Now attempting to contract pair: (" + p.v1.n + ", " + p.v2.n + ")");
                 Console.Out.WriteLine("The pair is in validPairs: " + validPairs.Contains(p));
  */
+				Debug.Assert(!(contracted.Contains(p.v1) || contracted.Contains(p.v2)), "Attempting to contract a previously contracted vertex");
+				
 
 //				Console.Out.Write(validPairs.Count + "->");
 				validPairs.Remove(p);
+				contracted.Add(p.v2);
 //				Console.Out.Write(validPairs.Count + "->");
 //                Console.Out.WriteLine("The pair is in validPairs: " + validPairs.Contains(p));
 
-                m = contract(m, p);
-
+				m = contract(m, p);
+				Console.Out.Write("b");
 				validPairs = updateCosts(m, validPairs, p);
-				Console.Out.Write("\n");
+				Console.Out.WriteLine("c");
+			
 //				Console.Out.WriteLine(validPairs.Count);
 //              Console.Out.WriteLine("Contracted pair (" + p.v1.n + ", " + p.v2.n + ")");
 
@@ -92,27 +92,63 @@ namespace Subdivision_Project
   
         public static SortedSet<Pair> updateCosts(Mesh m, SortedSet<Pair> validPairs, Pair p)
         {
-            
-			List<Pair> updated = new List<Pair>(p.v1.pairs.Union(p.v2.pairs));
+			Console.Out.Write("1");
+				
+			var updated = new List<Pair>(p.v1.pairs.Union(p.v2.pairs));
 			updated.Remove(p);
+			Debug.Assert(!updated.Contains(p), "Duplicate instances of p");
 			Pair p0;
-            
 			for(int i = 0; i < updated.Count; i++)
 			{
 				p0 = updated[i];
 				validPairs.Remove(p0);
-				if(p0.v1 == p.v2)
+				if(p0.v1.Equals(p.v2))
 					p0.v1 = p.v1;
-				if(p0.v2 == p.v2)
+				if(p0.v2.Equals(p.v2))
 					p0.v2 = p.v1;
 				p0.update();
-				validPairs.Add(p0);
+				Console.Out.Write("2");
+				if (isValid(p0))
+					validPairs.Add(p0);
+				Console.Out.Write("3");
+				Debug.Assert(p0.v1 != p0.v2, "Pair is made up of two of the same vertex");
+				Debug.Assert(p0.v1.Equals(p.v2) || p0.v2.Equals(p.v2), "Contracted Vertex Passed Back into ValidPairs");
 			}
-            
+			Console.Out.Write("4");
+
 			p.v1.pairs = new HashSet<Pair>(updated);
+			p.v2.pairs = null;
+
+			HashSet<Pair> forgotten = new HashSet<Pair>();
+			foreach(Pair p1 in validPairs)
+			{
+				if(p1.v1.Equals(p.v2))
+					forgotten.Add(p1);
+				if(p1.v2.Equals(p.v2))
+					forgotten.Add(p1);
+			}
+			Console.Out.Write("5");
+
 			return validPairs;
 		}
 
+		private static bool isValid(Pair p)
+		{
+			HalfEdge e;
+			Console.Out.Write(" 2.1 ");
+
+			if (p.v1.boundary() || p.v2.boundary())
+			{
+				//if the edge of contraction is not a boundary
+				//find the halfedge between the two
+				Console.Out.Write(" 2.2 ");
+				e = p.findEdge();
+				Console.Out.Write(" 2.3 ");
+				if ((e.face != null) && (e.opposite.face != null))
+					return false;
+			}
+			return true;
+		}
 		// TODO: Make sure to check logic! This one is prone to errors!
 		public static Mesh contract(Mesh m, Pair p)
 		{
@@ -120,13 +156,13 @@ namespace Subdivision_Project
 			//every edge to p.v2 must become an edge to p.v1
 			//delete all degenerate triangles
             HashSet<HalfEdge> edges = p.v2.outgoing();
-            
-            HalfEdge adjExtEdge, oppExtEdge;
 
+			//opposite half edges
+			HalfEdge o1, o2;
             foreach (HalfEdge outgoing in edges)
             {
 				//needs a boundary case
-                if (outgoing.vert == p.v1)
+                if (outgoing.vert.Equals(p.v1))
                 {
 					if (outgoing.face == null)
 					{
@@ -136,41 +172,42 @@ namespace Subdivision_Project
 					}
 					else
 					{
-						adjExtEdge = outgoing.prev.opposite;
-						oppExtEdge = outgoing.next.opposite;
-
+						o1 = outgoing.next;
+						o2 = outgoing.prev; 
 						// Make sure none of the remaining vertices are linked to internal edges
-						p.v1.e = adjExtEdge;
-						adjExtEdge.vert.e = oppExtEdge;
+						//but don't overwrite if they are referencing boundary halfedges
+						if(p.v1.e.face != null)
+							p.v1.e = o2;
+						if(outgoing.next.vert.e.face != null)
+							outgoing.next.vert.e = o1;
 
-						adjExtEdge.opposite = oppExtEdge;
-						oppExtEdge.opposite = adjExtEdge;
-
+						o1.opposite = o2;
+						o2.opposite = o1;
 						m.triangles.Remove(outgoing.face);
 					}
                 }
-                else if (outgoing.next.vert == p.v1)
+                else if (outgoing.next.vert.Equals(p.v1))
                 {
 					//imagine that v1 and v2 cut a corner
 					//if you walk 2 steps on the boundary you'll get to v1 but that is incorrect
-					if (outgoing.face == null)
-						continue;
-					adjExtEdge = outgoing.opposite;
-                    oppExtEdge = outgoing.next.opposite;
+					Debug.Assert(outgoing.face != null, "Attempted to cut off a corner");
+					o1 = outgoing.next.opposite;
+					o2 = outgoing.opposite;
 
-                    // Make sure none of the remaining vertices are linked to internal edges
-                    p.v1.e = oppExtEdge;
-                    oppExtEdge.vert.e = adjExtEdge;
+					if (p.v1.e.face != null)
+						p.v1.e = o1;
+					if (outgoing.next.vert.e.face != null)
+						outgoing.next.vert.e = o2;
 
-                    adjExtEdge.opposite = oppExtEdge;
-                    oppExtEdge.opposite = adjExtEdge;
+					o1.opposite = o2;
+					o2.opposite = o1;
 
                     m.triangles.Remove(outgoing.face);
                 }
                 else
                 {
 					//if there is an incoming edge from v1 to v2 on the boundary
-					if ((outgoing.face == null) && (outgoing.prev.prev.vert == p.v1))
+					if ((outgoing.face == null) && (outgoing.prev.prev.vert.Equals(p.v1)))
 					{
 						outgoing.prev = outgoing.prev.prev;
 						outgoing.prev.next = outgoing;
@@ -178,12 +215,13 @@ namespace Subdivision_Project
 					else
 						outgoing.prev.vert = p.v1;
                 }
-            }
-            
- //           m.vertices.Remove(p.v2);
-            p.v1.pos = p.vbar;
 
-            p.v1.Q = p.Q;
+			}
+            
+//          m.vertices.Remove(p.v2);
+			//does this line break everything? NO 
+			p.v1.pos = p.vbar;
+			p.v1.Q = p.Q;
 
             return m;
 		}

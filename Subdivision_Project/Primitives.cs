@@ -169,6 +169,22 @@ namespace Subdivision_Project
 			}
 		}
 
+		public class VertIndex : IEqualityComparer<Vertex>, IComparer<Vertex>
+		{
+			public int Compare(Vertex v1, Vertex v2)
+			{
+				return v1.n.CompareTo(v2.n);
+			}
+			public bool Equals(Vertex v1, Vertex v2)
+			{
+				return v1.n == v2.n;
+			}
+			public int GetHashCode(Vertex v)
+			{
+				return v.n.GetHashCode();
+			}
+		}
+
 		public class Vertex : IEquatable<Vertex>
 		{
 			public HalfEdge e;
@@ -217,15 +233,25 @@ namespace Subdivision_Project
 				return temp;
 			}
 
+			public HashSet<Pair> ePairs()
+			{
+				var temp = new HashSet<Pair>();
+				HalfEdge e0 = e;
+				do
+				{
+					temp.Add(e0.edge);
+					e0 = e0.opposite.next;
+				} while (e0 != e);
+				return temp;
+			}
+
 			public HashSet<HalfEdge> outgoing()
 			{
 				var temp = new HashSet<HalfEdge>();
 				HalfEdge e0 = e;
 				do
 				{
-					//Debug.Assert(e0.opposite.opposite == e0, "Opposite Symmetry Failed");
-					Debug.Assert(e0.next.prev == e0, "Next Reference Symmetry Failed");
-					Debug.Assert(e0.prev.next == e0, "Prev Reference Symmetry Failed");
+					Debug.Assert(e0.opposite.opposite == e0, "Opposite Symmetry Failed");
 					temp.Add(e0);
 					e0 = e0.opposite.next;
 				} while (e0 != e);
@@ -239,7 +265,8 @@ namespace Subdivision_Project
 				//just in case this isnt true
 				HalfEdge e0 = e;
 				do{
-					if(e0.face == null)
+					Debug.Assert(e0.opposite.opposite == e0, "Opposite Symmetry Failed");
+					if (e0.face == null)
 						return true;
 					e0 = e0.opposite.next;
 				}while(e0 != e);
@@ -276,6 +303,18 @@ namespace Subdivision_Project
 				Q = v1.Q + v2.Q;
 				findVBar();
 				calcCost();
+			}
+
+			public HalfEdge findEdge()
+			{
+				HalfEdge e = v1.e;
+				do{
+					Debug.Assert(e.opposite.opposite == e);
+					if(e.vert.Equals(v2))
+						return e;
+					e = e.opposite.next;
+				}while(e != v1.e);
+				return null;
 			}
 			
 			public override int GetHashCode()
